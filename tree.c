@@ -13,6 +13,17 @@ tree_node node_pool[NODE_POOL_MAX];
 uint32_t node_pool_alloc[NODE_POOL_MAX];
 uint32_t node_pool_next_free = 0;
 
+void tree_init()
+{
+	unsigned i;
+
+	for (i = 0; i < NODE_POOL_MAX; i++)
+	{
+		node_pool_alloc[i] = 0;
+		node_pool_next_free = 0;
+	}
+}
+
 tree_node* node_alloc()
 {
 	while (node_pool_alloc[node_pool_next_free])

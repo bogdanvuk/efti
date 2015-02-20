@@ -8,9 +8,15 @@
 #ifndef TIMING_H_
 #define TIMING_H_
 
-int timing_init();
-int timing_close();
-void timing_print();
+#include <stdint.h>
+
+int timing_init(uint32_t id, uint32_t interval, uint32_t prescaler);
+//void timing_print(uint32_t id);
+void timing_reset(uint32_t id);
+void timing_start(uint32_t id);
+void timing_stop(uint32_t id);
+void timing_close(uint32_t id);
+uint32_t timing_count_get(uint32_t id);
 
 
 #endif /* TIMING_H_ */

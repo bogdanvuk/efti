@@ -10,6 +10,8 @@
 
 #include <stdint.h>
 
-void print_float(float num, unsigned res);
+void print_float(float num, float res);
+
+void ser_printf(const char *format, ...);
 
 #endif /* UTIL_H_ */
