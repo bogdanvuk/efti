@@ -7,7 +7,6 @@
 
 #include "tree.h"
 #include <stdlib.h>
-#include "xil_printf.h"
 
 tree_node node_pool[NODE_POOL_MAX];
 uint32_t node_pool_alloc[NODE_POOL_MAX];

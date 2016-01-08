@@ -1,21 +1,21 @@
+#include "efti_conf.h"
 #include "hw_config.h"
-#include "hereboy.h"
+#include "efti.h"
 #include "tree.h"
-#include "xil_printf.h"
 #include <stdlib.h>
+#include <string.h>
 #include <math.h>
-#include "xil_io.h"
-#include "xaxidma.h"
 #include "util.h"
-#include "xparameters.h"
 #include "timing.h"
 
-#define rand_norm() ((rand() % 10000) / 10000.0)
+#if EFTI_HW == 1
+
+#include "xil_io.h"
+#include "xaxidma.h"
+#include "xparameters.h"
+#include "xil_mmu.h"
 
 #define DMA_DEV_ID		0
-
-#define TIMING_HB_ID					0
-#define TIMING_FITNESS_CALC_ID			1
 
 #define AXI_DMA_TRANSFER_SIZE	0x3fff
 #define MEM_BASE_ADDR		0x11000000
@@ -55,16 +55,35 @@ u8 * volatile RxBufferPtr;
 #define CATEG_MEM_REGION_BASE	0x60000
 //#define INST_MEM_BASE(inst_num)		((unsigned int*) (DT_HW_AXI_BASE_ADDR | INST_MEM_REGION_BASE | (inst_num << INST_MEM_BANKS_ADDR_WIDTH << 2)))
 
-#define INST_MEM_ADDR(inst_num, bank_num) ((unsigned int*) (DT_HW_AXI_BASE_ADDR | INST_MEM_REGION_BASE | ((bank_num << INST_MEM_ADDR_WIDTH | inst_num) << 2)))
-#define CATEG_MEM_ADDR(inst_num) ((unsigned int*) (DT_HW_AXI_BASE_ADDR | CATEG_MEM_REGION_BASE | (inst_num << 2)))
+#define INST_MEM_ADDR(inst_num, bank_num) ((volatile unsigned int*) (DT_HW_AXI_BASE_ADDR | INST_MEM_REGION_BASE | ((bank_num << INST_MEM_ADDR_WIDTH | inst_num) << 2)))
+#define CATEG_MEM_ADDR(inst_num) ((volatile unsigned int*) (DT_HW_AXI_BASE_ADDR | CATEG_MEM_REGION_BASE | (inst_num << 2)))
 
 #define DT_MEM_REGION_BASE		0x40000
 
-#define DT_MEM_COEF_ADDR(level, node_num, bank_num) ((unsigned int*) (DT_HW_AXI_BASE_ADDR | DT_MEM_REGION_BASE | ((level << DT_MEM_TOT_ADDR_WIDTH | bank_num << DT_MEM_ADDR_WIDTH | node_num) << 2)))
+#define DT_MEM_COEF_ADDR(level, node_num, bank_num) ((volatile unsigned int*) (DT_HW_AXI_BASE_ADDR | DT_MEM_REGION_BASE | ((level << DT_MEM_TOT_ADDR_WIDTH | bank_num << DT_MEM_ADDR_WIDTH | node_num) << 2)))
 
-#define DT_MEM_CLS_PTR_ADDR(level, node_num) ((unsigned int*) (DT_HW_AXI_BASE_ADDR | DT_MEM_REGION_BASE | ((level << DT_MEM_TOT_ADDR_WIDTH | DT_MEM_COEF_BANKS_NUM << DT_MEM_ADDR_WIDTH | node_num) << 2)))
+#define DT_MEM_CLS_PTR_ADDR(level, node_num) ((volatile unsigned int*) (DT_HW_AXI_BASE_ADDR | DT_MEM_REGION_BASE | ((level << DT_MEM_TOT_ADDR_WIDTH | DT_MEM_COEF_BANKS_NUM << DT_MEM_ADDR_WIDTH | node_num) << 2)))
 
-Hb_Conf_t *hb_conf;
+#define TLB_SHARABLE	(1 << 16)
+
+#define TBL_AP(val)		((val) << 10)
+#define TBL_AP_RW_FULL	(TBL_AP(0x3))
+
+#define TBL_TEX(val)	((val) << 12)
+#define TBL_TEX_STRONGLY_ORDERED	TBL_TEX(0x0)
+#define TBL_TEX_NON_SHARABLE_DEVICE	TBL_TEX(0x2)
+#define TBL_XN			(1 << 4)
+#define TBL_C			(1 << 3)
+#define TBL_B			(1 << 2)
+#define TBL_RES			(0x0002)
+
+#endif
+
+Efti_Conf_t *efti_conf;
+
+#define rand_norm() ((rand() % 10000) / 10000.0)
+#define TIMING_EFTI_ID					0
+#define TIMING_FITNESS_CALC_ID			1
 
 #define COEF_BANKS_MAX_NUM 		64
 
@@ -73,6 +92,8 @@ uint32_t inst_cnt;
 uint32_t categ_max;
 uint32_t coef_packed_mem[COEF_BANKS_MAX_NUM];
 int32_t instances[NUM_INST_MAX][NUM_ATTRIBUTES];
+int32_t last_classification[NUM_INST_MAX];
+int32_t diff_classifications;
 uint32_t categories[NUM_INST_MAX];
 uint32_t current_iter;
 
@@ -99,7 +120,7 @@ void HbAssert(uint32_t expression)
 {
 	if (!expression)
 	{
-		xil_printf("Assert failed! Iter: %d", current_iter);
+		efti_printf("Assert failed! Iter: %d", current_iter);
 		while(1)
 		{
 		}
@@ -203,39 +224,44 @@ void random_hiperplane(int32_t weights[])
 
 }
 
-int hb_clear_instances()
+int efti_clear_instances()
 {
 	inst_cnt = 0;
 
 	return 0;
 }
 
-int hb_load_instance(int32_t* instance, uint_fast16_t category)
+int efti_load_instance(int32_t* instance, uint_fast16_t category)
 {
 	unsigned i;
-	unsigned banks_cnt;
 
 	for (i = 0; i < attr_cnt; i++)
 	{
 		instances[inst_cnt][i] = instance[i];
 	}
 
-	banks_cnt = pack_coefs(instance, attr_cnt, ATTRIBUTE_RES, coef_packed_mem);
-
 //	Xil_Out32(INST_MEM_BASE(inst_cnt), coef_packed_mem[0]);
 //	Xil_Out32(INST_MEM_BASE(inst_cnt) + 1, coef_packed_mem[1]);
 
-//	Xil_SetTlbAttributes(0x40000000, 0xC06);
+	//S = 0
+
+//	Xil_SetTlbAttributes(0x40000000, TBL_RES | TBL_TEX_STRONGLY_ORDERED | TBL_AP_RW_FULL | TBL_B );
 
 //	memcpy(INST_MEM_BASE(inst_cnt), coef_packed_mem, 4*banks_cnt);
 //	memcpy(coef_packed_mem, INST_MEM_BASE(inst_cnt), 4*banks_cnt);
 
-	for (i = 0; i < banks_cnt; i++)
+#if EFTI_HW == 1
+	unsigned banks_cnt;
+
+	banks_cnt = pack_coefs(instance, attr_cnt, ATTRIBUTE_RES, coef_packed_mem);
+
+	for (i = 0; i < INST_MEM_BANKS_NUM; i++)
 	{
 		*(INST_MEM_ADDR(inst_cnt, i)) = coef_packed_mem[i];
 	}
 
 	*(CATEG_MEM_ADDR(inst_cnt)) = category;
+#endif
 
 	categories[inst_cnt] = category;
 
@@ -243,6 +269,8 @@ int hb_load_instance(int32_t* instance, uint_fast16_t category)
 
 	return 0;
 }
+
+#if EFTI_HW == 1
 
 int hw_init()
 {
@@ -279,17 +307,26 @@ int hw_init()
 
 	RxBufferPtr = (u8 *)RX_BUFFER_BASE;
 
-//	Status = XAxiDma_SimpleTransfer(&AxiDma,(u32) RxBufferPtr,
+//	Status = XAxiDma_SimpleTransfer(&AxiDma,(uint32_t) RxBufferPtr,
 //				dt_hw_config.inst_num*4, XAXIDMA_DEVICE_TO_DMA);
 
 
-//#if ((HB_SW == 1) || (HB_HW_SW_FITNESS == 1))
-	Status = XAxiDma_SimpleTransfer(&AxiDma,(u32) RxBufferPtr,
+//#if ((EFTI_SW == 1) || (EFTI_HW_SW_FITNESS == 1))
+	Status = XAxiDma_SimpleTransfer(&AxiDma,(uint32_t) RxBufferPtr,
 			AXI_DMA_TRANSFER_SIZE, XAXIDMA_DEVICE_TO_DMA);
 //#endif
 
+	// Reset the HW
+	Xil_Out32(DT_HW_CONF1_ADDR, 0x00000002);
+
+	//Xil_SetTlbAttributes(0x40000000, TBL_RES | TBL_TEX_STRONGLY_ORDERED | TBL_AP_RW_FULL | TBL_B );
+	//Xil_SetTlbAttributes(0x40000000, TBL_RES | TBL_TEX_NON_SHARABLE_DEVICE | TBL_AP_RW_FULL | TBL_C );
+	Xil_SetTlbAttributes(0x40000000, 0xC02 );
+
 	return Status;
 }
+
+#endif
 
 int _extract_hierarcy(tree_node* dt, uint32_t level)
 {
@@ -341,7 +378,7 @@ int extract_hierarcy(tree_node* dt)
 #include "loop_unfold.cpp"
 #endif
 
-uint32_t classify(tree_node* dt, int32_t attributes[])
+uint32_t find_dt_leaf_for_inst(tree_node* dt, int32_t attributes[])
 {
     tree_node* cur_node;
     int16_t res_scaled;
@@ -354,7 +391,7 @@ uint32_t classify(tree_node* dt, int32_t attributes[])
 	{
 
 #if (DT_USE_LOOP_UNFOLD == 1)
-        res = vector_mult_loop_unfold(this->node_weights[cur_node], attributes, this->attr_cnt);
+        res = evaluate_node_test(cur_node->weights, attributes, attr_cnt);
 #else
         res = 0;
         for (j = 0; j < attr_cnt; j++)
@@ -379,6 +416,8 @@ uint32_t classify(tree_node* dt, int32_t attributes[])
 	return cur_node->id;
 }
 
+#if EFTI_HW == 1
+
 void hw_start(uint32_t get_classes)
 {
 	// Start the HW
@@ -387,24 +426,34 @@ void hw_start(uint32_t get_classes)
 //	if (get_classes)
 //	{
 		// Start DMA (Could certanly be wrapped to look less ugly): reset the number of words to transmit
-		*(u32* volatile) 0x40400058 = AXI_DMA_TRANSFER_SIZE;
+		*(uint32_t* volatile) 0x80400058 = AXI_DMA_TRANSFER_SIZE;
 
 //	}
 
 	Xil_Out32(DT_HW_CONF1_ADDR, 0x00000000);
 }
 
-void find_node_distribution(tree_node* dt, volatile u32* rxBuf)
+#endif
+
+void find_node_distribution(tree_node* dt, volatile uint32_t* rxBuf)
 {
 	unsigned i;
+
 
 	for (i = 0 ; i < inst_cnt; i++)
 	{
 		uint32_t node;
 
-#if (HB_SW == 1)
-		node = classify(dt, instances[i]);
-#if (HB_HW_SW_FITNESS == 1)
+#if (EFTI_SW == 1)
+
+		node = find_dt_leaf_for_inst(dt, instances[i]);
+		if (last_classification[i] != node) {
+			diff_classifications++;
+		}
+
+		last_classification[i] = node;
+
+#if (EFTI_HW_SW_FITNESS == 1)
 		HbAssert(node == (*rxBuf++));
 #endif
 #else
@@ -419,16 +468,14 @@ float dt_eval(tree_node* dt)
 {
 	uint32_t hits = 0;
 	unsigned i;
-	volatile u32* rxBuf = (u32*) RxBufferPtr;
+#if (EFTI_HW == 1)
+	volatile uint32_t* rxBuf = (uint32_t*) RxBufferPtr;
 	*rxBuf = 0;
-
-#if (HB_HW == 1)
-
 
     hw_start(1);
 #endif
 
-#if (HB_HW == 1)
+#if (EFTI_HW == 1)
     while (*rxBuf == 0)
 	{
 	}
@@ -438,9 +485,9 @@ float dt_eval(tree_node* dt)
 	{
 		uint32_t node;
 
-#if (HB_SW == 1)
-		node = classify(dt, instances[i]);
-#if (HB_HW_SW_FITNESS == 1)
+#if (EFTI_SW == 1)
+		node = find_dt_leaf_for_inst(dt, instances[i]);
+#if (EFTI_HW_SW_FITNESS == 1)
 		HbAssert(node == (*rxBuf++));
 #endif
 #else
@@ -461,11 +508,9 @@ float dt_eval(tree_node* dt)
 void assign_classes(tree_node* dt)
 {
 	unsigned i,j;
-	volatile u32* rxBuf = (u32*) RxBufferPtr;
-    *rxBuf = 0;
-
-#if (HB_HW == 1)
-
+#if (EFTI_HW == 1)
+	volatile uint32_t* rxBuf = (uint32_t*) RxBufferPtr;
+	*rxBuf = 0;
 
     hw_start(1);
 #endif
@@ -475,13 +520,15 @@ void assign_classes(tree_node* dt)
 		memset(node_categories_distrib[i], 0, sizeof(uint_fast16_t)*attr_cnt);
 	}
 
-#if (HB_HW == 1)
+#if (EFTI_HW == 1)
     while (*rxBuf == 0)
 	{
 	}
-#endif
 
     find_node_distribution(dt, rxBuf);
+#else
+    find_node_distribution(dt, NULL);
+#endif
 
 	for (i = 1; i <= leaves_cnt; i++)
 	{
@@ -503,39 +550,39 @@ void assign_classes(tree_node* dt)
 	}
 }
 
-float fitness_calc(tree_node* dt)
+float fitness_eval(tree_node* dt)
 {
     uint_fast16_t hits;
     uint32_t status;
     float accuracy;
     //uint32_t accuracy;
 
-#if ((HB_SW == 1) || (HB_HW_SW_FITNESS == 1))
+#if ((EFTI_SW == 1) || (EFTI_HW_SW_FITNESS == 1))
     unsigned i, j;
 #endif
 
-//#if (HB_HW_SW_FITNESS == 1)
-    volatile u32* rxBuf = (u32*) RxBufferPtr;
+#if (EFTI_HW == 1)
+    volatile uint32_t* rxBuf = (uint32_t*) RxBufferPtr;
     *rxBuf = 0;
-//#endif
 
-#if (HB_HW == 1)
-    hw_start(HB_HW_SW_FITNESS);
+    hw_start(EFTI_HW_SW_FITNESS);
 #endif
 
-#if ((HB_SW == 1) || (HB_HW_SW_FITNESS == 1))
+#if ((EFTI_SW == 1) || (EFTI_HW_SW_FITNESS == 1))
     for (i = 1; i <= leaves_cnt; i++)
 	{
 		memset(node_categories_distrib[i], 0, sizeof(uint_fast16_t)*attr_cnt);
 	}
 
-#if (HB_HW_SW_FITNESS == 1)
+#if (EFTI_HW_SW_FITNESS == 1)
     while (*rxBuf == 0)
 	{
 	}
-#endif
 
     find_node_distribution(dt, rxBuf);
+#else
+    find_node_distribution(dt, NULL);
+#endif
 
 	hits = 0;
 	for (i = 1; i <= leaves_cnt; i++)
@@ -556,14 +603,14 @@ float fitness_calc(tree_node* dt)
 	}
 #endif
 
-#if ((HB_HW == 1))
+#if ((EFTI_HW == 1))
 	status = 0;
     while ((status & 0xffff0000) == 0)
     {
     	status = Xil_In32(DT_HW_STAT1_ADDR);
     }
 
-#if (HB_SW == 1)
+#if (EFTI_SW == 1)
     HbAssert((status >> 16) == hits);
 #else
     hits = status >> 16;
@@ -572,11 +619,13 @@ float fitness_calc(tree_node* dt)
 #endif
 
     accuracy = ((float) hits)/inst_cnt;
-    accuracy *= (hb_conf->complexity_weight*(((float) categ_max) - ((float) leaves_cnt))/((float)categ_max) + 1);
+    accuracy *= (efti_conf->complexity_weight*(((float) categ_max) - ((float) leaves_cnt))/((float)categ_max) + 1);
 
     return accuracy;
 
 }
+
+#if EFTI_HW == 1
 
 void hw_set_whole_tree()
 {
@@ -621,6 +670,8 @@ void hw_set_whole_tree()
 
 }
 
+#endif
+
 //void hw_apply_topo_
 
 void delete_trimmed_subtree(uint32_t topology_mutated, tree_node* temp_mut_hang_tree, tree_node* topo_mut_node)
@@ -650,7 +701,7 @@ void hw_apply_mutation(tree_node* mut_nodes[], uint32_t mut_attr[], uint32_t mut
 	}
 }
 
-tree_node* hb_run(float* fitness, uint32_t* dt_leaves_cnt, uint32_t* dt_nonleaves_cnt, float* t_hb, float* t_fitness_calc_avg)
+tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt, uint32_t* dt_nonleaves_cnt, float* t_hb, float* t_fitness_calc_avg, float* tot_reclass)
 {
 	tree_node* dt_best;
 	tree_node* dt_cur;
@@ -681,10 +732,13 @@ tree_node* hb_run(float* fitness, uint32_t* dt_leaves_cnt, uint32_t* dt_nonleave
 	float fitness_best, fitness_cur, fitness_new;
 	unsigned i;
 
-	timing_reset(TIMING_HB_ID);
-	timing_start(TIMING_HB_ID);
+	timing_reset(TIMING_EFTI_ID);
+	timing_start(TIMING_EFTI_ID);
 
+#if EFTI_HW == 1
 	Xil_Out32(DT_HW_INST_NUM_ADDR, inst_cnt - 1);
+#endif
+
 	tree_init();
 
 	dt_cur = tree_create();
@@ -697,37 +751,37 @@ tree_node* hb_run(float* fitness, uint32_t* dt_leaves_cnt, uint32_t* dt_nonleave
 
 	extract_hierarcy(dt_cur);
 
-#if (HB_HW == 1)
+#if (EFTI_HW == 1)
 	hw_set_whole_tree(dt_cur);
 #endif
 
-	fitness_best = fitness_cur = fitness_calc(dt_cur);
+	fitness_best = fitness_cur = fitness_eval(dt_cur);
 	stagnation_iter = 0;
 	returned_to_best_iter = 0;
 	temp_mut_hang_tree = NULL;
 	topo_mut_node = NULL;
 	topo_mut_sibling = NULL;
 
-	for (current_iter = 0; current_iter < hb_conf->max_iterations; current_iter++)
+	for (current_iter = 0; current_iter < efti_conf->max_iterations; current_iter++)
 	{
-#if (HB_PRINT_PROGRESS_INTERVAL != 0)
-		if (current_iter % HB_PRINT_PROGRESS_INTERVAL == 0) {
-			ser_printf("Current iteration: %d\n", current_iter);
+#if (EFTI_PRINT_PROGRESS_INTERVAL != 0)
+		if (current_iter % EFTI_PRINT_PROGRESS_INTERVAL == 0) {
+			efti_printf("Current iteration: %d\n", current_iter);
 		}
 #endif
 
 		// If HB Timing counter is about to overflow (it's only 16-bit counter), save the value and reset the counter
-		if (timing_count_get(TIMING_HB_ID) > 0xf000)
+		if (timing_count_get(TIMING_EFTI_ID) > 0xf000)
 		{
-			ticks_hb += timing_count_get(TIMING_HB_ID);
-			timing_reset(TIMING_HB_ID);
+			ticks_hb += timing_count_get(TIMING_EFTI_ID);
+			timing_reset(TIMING_EFTI_ID);
 		}
 
 		topology_mutated = 0;
 
-		topo_mutation_probability = hb_conf->topology_mutation_rate * leaves_cnt;
+		topo_mutation_probability = efti_conf->topology_mutation_rate * leaves_cnt;
 
-		topo_mutation_probability *= 1 + stagnation_iter*hb_conf->topo_mutation_rate_raise_due_to_stagnation_step;
+		topo_mutation_probability *= 1 + stagnation_iter*efti_conf->topo_mutation_rate_raise_due_to_stagnation_step;
 
 		if (topo_mutation_probability > rand_norm())
 		{
@@ -765,13 +819,13 @@ tree_node* hb_run(float* fitness, uint32_t* dt_leaves_cnt, uint32_t* dt_nonleave
 			}
 
 			extract_hierarcy(dt_cur);
-#if (HB_HW == 1)
+#if (EFTI_HW == 1)
 			hw_set_whole_tree(dt_cur);
 #endif
 		}
 
-		weights_mutation_cnt = 1 + hb_conf->weights_mutation_rate *
-							   (1 + stagnation_iter*hb_conf->weight_mutation_rate_raise_due_to_stagnation_step) *
+		weights_mutation_cnt = 1 + efti_conf->weights_mutation_rate *
+							   (1 + stagnation_iter*efti_conf->weight_mutation_rate_raise_due_to_stagnation_step) *
 							   nonleaves_cnt;
 
 		for (i = 0; i < weights_mutation_cnt; i++)
@@ -792,7 +846,7 @@ tree_node* hb_run(float* fitness, uint32_t* dt_leaves_cnt, uint32_t* dt_nonleave
 //			mut_banks[i] = rand() % DT_MEM_COEF_BANKS_NUM;
 //			mut_masks[i] = 1 << (rand() % 32);
 
-#if (HB_HW == 1)
+#if (EFTI_HW == 1)
 			get_bank_bit(mut_attr[i], mut_bit[i], &mut_banks[i], &mut_mask_bit);
 			mut_masks[i] = 1 << mut_mask_bit;
 //			pack_coefs(mut_nodes[i]->weights, NUM_ATTRIBUTES + 1, COEF_RES, coef_packed_mem);
@@ -801,7 +855,7 @@ tree_node* hb_run(float* fitness, uint32_t* dt_leaves_cnt, uint32_t* dt_nonleave
 			*(DT_MEM_COEF_ADDR(mut_nodes[i]->level, mut_nodes[i]->id, mut_banks[i])) = mut_nodes[i]->banks[mut_banks[i]];
 #endif
 
-#if (HB_SW == 1)
+#if (EFTI_SW == 1)
 			mut_attr_val[i] = mut_nodes[i]->weights[mut_attr[i]];
 			uint16_t weight_temp = mut_nodes[i]->weights[mut_attr[i]];
 			mut_nodes[i]->weights[mut_attr[i]] = (int16_t) (weight_temp ^ (1 << mut_bit[i]));
@@ -811,7 +865,7 @@ tree_node* hb_run(float* fitness, uint32_t* dt_leaves_cnt, uint32_t* dt_nonleave
 		timing_reset(TIMING_FITNESS_CALC_ID);
 		timing_start(TIMING_FITNESS_CALC_ID);
 
-		fitness_new = fitness_calc(dt_cur);
+		fitness_new = fitness_eval(dt_cur);
 
 		timing_stop(TIMING_FITNESS_CALC_ID);
 		ticks_fitness_average += timing_count_get(TIMING_FITNESS_CALC_ID);
@@ -819,7 +873,7 @@ tree_node* hb_run(float* fitness, uint32_t* dt_leaves_cnt, uint32_t* dt_nonleave
 		if ((fitness_new - fitness_cur) > 1e-6)
 		{
 			stagnation_iter = 0;
-//#if ((HB_HW == 1) && (HB_SW == 0))
+//#if ((EFTI_HW == 1) && (EFTI_SW == 0))
 //			hw_apply_mutation(mut_nodes, mut_attr, mut_bit, weights_mutation_cnt);
 //#endif
 
@@ -832,7 +886,7 @@ tree_node* hb_run(float* fitness, uint32_t* dt_leaves_cnt, uint32_t* dt_nonleave
 
 				returned_to_best_iter = current_iter;
 				fitness_best = fitness_cur;
-#if (HB_PRINT_STATS == 1)
+#if (EFTI_PRINT_STATS == 1)
 				xil_printf("AB: i=%d,f=", current_iter);
 				print_float(fitness_cur, 100);
 				xil_printf(",s=%d", leaves_cnt);
@@ -841,7 +895,7 @@ tree_node* hb_run(float* fitness, uint32_t* dt_leaves_cnt, uint32_t* dt_nonleave
 			}
 			else
 			{
-#if (HB_PRINT_STATS == 1)
+#if (EFTI_PRINT_STATS == 1)
 				xil_printf("CB: i=%d,f=", current_iter);
 				print_float(fitness_cur, 100);
 				xil_printf(",s=%d", leaves_cnt);
@@ -853,10 +907,10 @@ tree_node* hb_run(float* fitness, uint32_t* dt_leaves_cnt, uint32_t* dt_nonleave
 		{
 			stagnation_iter++;
 
-			return_to_best_probability = hb_conf->return_to_best_prob_iteration_increment *
+			return_to_best_probability = efti_conf->return_to_best_prob_iteration_increment *
 										(current_iter - returned_to_best_iter);
 
-			search_probability = hb_conf->search_probability * (1 + stagnation_iter*hb_conf->search_probability_raise_due_to_stagnation_step);
+			search_probability = efti_conf->search_probability * (1 + stagnation_iter*efti_conf->search_probability_raise_due_to_stagnation_step);
 
 			/* Should we return to the best yet solution since we are wondering without improvement for a long time? */
 			if (rand_norm() < return_to_best_probability)
@@ -864,20 +918,22 @@ tree_node* hb_run(float* fitness, uint32_t* dt_leaves_cnt, uint32_t* dt_nonleave
 				tree_delete_node(dt_cur);
 				dt_cur = tree_copy(dt_best);
 				extract_hierarcy(dt_cur);
+#if EFTI_HW == 1
 				hw_set_whole_tree(dt_cur);
+#endif
 
 				delete_trimmed_subtree(topology_mutated, temp_mut_hang_tree, topo_mut_node);
 
 				fitness_cur = fitness_best;
 				returned_to_best_iter = current_iter;
 				stagnation_iter = 0;
-#if (HB_PRINT_STATS == 1)
+#if (EFTI_PRINT_STATS == 1)
 				xil_printf("RB: i=%d\n\r", current_iter);
 #endif
 			}
 			else if (topology_mutated && (rand_norm() < search_probability))
 			{
-//#if ((HB_HW == 1) && (HB_SW == 0))
+//#if ((EFTI_HW == 1) && (EFTI_SW == 0))
 //				hw_apply_mutation(mut_nodes, mut_attr, mut_bit, weights_mutation_cnt);
 //#endif
 				delete_trimmed_subtree(topology_mutated, temp_mut_hang_tree, topo_mut_node);
@@ -889,10 +945,10 @@ tree_node* hb_run(float* fitness, uint32_t* dt_leaves_cnt, uint32_t* dt_nonleave
 
 				for (i = 0; i < weights_mutation_cnt; i++)
 				{
-#if (HB_SW == 1)
+#if (EFTI_SW == 1)
 					mut_nodes[i]->weights[mut_attr[i]] = mut_attr_val[i];
 #endif
-#if (HB_HW == 1)
+#if (EFTI_HW == 1)
 					mut_nodes[i]->banks[mut_banks[i]] = mut_bank_val[i];
 #endif
 				}
@@ -917,13 +973,13 @@ tree_node* hb_run(float* fitness, uint32_t* dt_leaves_cnt, uint32_t* dt_nonleave
 					}
 
 					extract_hierarcy(dt_cur);
-#if (HB_HW == 1)
+#if (EFTI_HW == 1)
 					hw_set_whole_tree(dt_cur);
 #endif
 				}
 				else
 				{
-#if (HB_HW == 1)
+#if (EFTI_HW == 1)
 					for (i = 0; i < weights_mutation_cnt; i++)
 					{
 						*(DT_MEM_COEF_ADDR(mut_nodes[i]->level, mut_nodes[i]->id, mut_banks[i])) = mut_bank_val[i];
@@ -936,53 +992,64 @@ tree_node* hb_run(float* fitness, uint32_t* dt_leaves_cnt, uint32_t* dt_nonleave
 
 	}
 
+#if EFTI_PROFILING == 0
+
 	tree_delete_node(dt_cur);
 	extract_hierarcy(dt_best);
+#if EFTI_HW == 1
 	hw_set_whole_tree(dt_best);
+#endif
 	assign_classes(dt_best);
 
-	uint32_t ticks = (uint32_t) ticks_fitness_average/hb_conf->max_iterations;
-	ticks_hb += timing_count_get(TIMING_HB_ID);
+	uint32_t ticks = (uint32_t) ticks_fitness_average/efti_conf->max_iterations;
+	ticks_hb += timing_count_get(TIMING_EFTI_ID);
 
-	*t_fitness_calc_avg = (ticks / (111111111.0 / 2));
-	*t_hb = (ticks_hb / (111111111.0 / 65536.0));
+	*t_fitness_calc_avg = timing_tick2sec(TIMING_FITNESS_CALC_ID, ticks);
+	*t_hb = timing_tick2sec(TIMING_EFTI_ID, ticks_hb);
 
 	*fitness = fitness_best;
 	*dt_leaves_cnt = leaves_cnt;
 	*dt_nonleaves_cnt = nonleaves_cnt;
+#endif
 
+	*tot_reclass = (float) diff_classifications / efti_conf->max_iterations / inst_cnt;
+	efti_printf("Total different classifications: %f\n", *tot_reclass);
 	return dt_best;
 }
 
 // CAUTION! This function implies that the decision tree is already setup in hardware and that
 // extract_hierarcy and assign_classes has been called upon it. In other words it is meant to
-// be called only after hb_run has finished.
-float hb_eval(tree_node* dt)
+// be called only after efti_run has finished.
+float efti_eval(tree_node* dt)
 {
+#if EFTI_HW == 1
 	hw_set_whole_tree(dt);
+#endif
 	return dt_eval(dt);
 }
 
-void hb_reset(Hb_Conf_t *conf, int attribute_cnt, int maximum_category)
+void efti_reset(Efti_Conf_t *conf, int attribute_cnt, int maximum_category)
 {
 	attr_cnt = attribute_cnt;
 	categ_max = maximum_category;
-	hb_conf = conf;
+	diff_classifications = 0;
+	efti_conf = conf;
 	inst_cnt = 0;
 }
 
-void hb_init()
+void efti_init()
 {
+#if EFTI_HW == 1
 	hw_init();
-	// Reset the HW
-	Xil_Out32(DT_HW_CONF1_ADDR, 0x00000002);
+#endif
+
 	timing_init(TIMING_FITNESS_CALC_ID, 0xffff, 0);
-	timing_init(TIMING_HB_ID, 0xffff, 0xf);
+	timing_init(TIMING_EFTI_ID, 0xffff, 0xf);
 }
 
-void hb_close()
+void efti_close()
 {
 	timing_close(TIMING_FITNESS_CALC_ID);
-	timing_close(TIMING_HB_ID);
+	timing_close(TIMING_EFTI_ID);
 }
 

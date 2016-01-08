@@ -17,6 +17,7 @@ void timing_start(uint32_t id);
 void timing_stop(uint32_t id);
 void timing_close(uint32_t id);
 uint32_t timing_count_get(uint32_t id);
+float timing_tick2sec(uint32_t id, uint32_t ticks);
 
 
 #endif /* TIMING_H_ */

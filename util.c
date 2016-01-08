@@ -4,13 +4,28 @@
  *  Created on: Feb 12, 2015
  *      Author: bvukobratovic
  */
+#include "efti_conf.h"
 #include "util.h"
-#include "xil_printf.h"
 #include "stdio.h"
+#include "stdarg.h"
+
+#if (EFTI_PC == 1)
+
+void efti_printf( const char *format, ...)
+{
+	va_list args;
+	va_start (args, format);
+	vprintf (format, args);
+	va_end (args);
+}
+
+
+#else
 
 char buffer[1024];
+#include "xil_printf.h"
 
-void ser_printf( const char *format, ...)
+void efti_printf( const char *format, ...)
 {
 	va_list args;
 	va_start (args, format);
@@ -26,12 +41,7 @@ void ser_printf( const char *format, ...)
 	va_end (args);
 }
 
-void print_float(float num, float res)
-{
-	uint32_t num_int = (uint32_t) num;
-	uint32_t num_dec = (uint32_t) ((num - num_int) * res);
+#endif
 
-	xil_printf("%d.%d", num_int, num_dec);
-}
 
 

@@ -1,7 +1,10 @@
+#include "efti_conf.h"
+#include <stdint.h>
+
+#if EFTI_PC == 0
 
 #include "xttcps.h"
 #include "xil_printf.h"
-#include "util.h"
 
 #define TTC_DEVICE_ID	    XPAR_XTTCPS_0_DEVICE_ID
 #define TTC_INTR_ID		    XPAR_XTTCPS_0_INTR
@@ -14,6 +17,7 @@ uint32_t ttc_device[3] = {
 
 XTtcPs_Config* ttc_config[3];
 XTtcPs ttc[3];
+uint32_t ttc_prescaler[3];
 
 int timing_init(uint32_t id, uint32_t interval, uint32_t prescaler)
 {
@@ -31,6 +35,8 @@ int timing_init(uint32_t id, uint32_t interval, uint32_t prescaler)
 
 	XTtcPs_SetInterval(&ttc[id], interval);
 	XTtcPs_SetPrescaler(&ttc[id], prescaler);
+
+	ttc_prescaler[id] = prescaler;
 
 	return 0;
 }
@@ -60,13 +66,54 @@ uint32_t timing_count_get(uint32_t id)
 	return XTtcPs_GetCounterValue(&ttc[id]);
 }
 
-//void timing_print()
-//{
-//	uint32_t ticks = XTtcPs_GetCounterValue(&Timer);
-//
-//	float t = (ticks / (111111111.0 / 65536.0));
-//
-//	xil_printf("Time: ");
-//	print_float(t, 1000);
-//	xil_printf("\n\r");
-//}
+float timing_tick2sec(uint32_t id, uint32_t ticks)
+{
+	return ticks / (111111111.0 / (1 << (ttc_prescaler[id] + 1)));
+}
+
+#else
+
+#include <time.h>
+
+clock_t ttc[3];
+uint32_t ttc_prescaler[3];
+
+int timing_init(uint32_t id, uint32_t interval, uint32_t prescaler)
+{
+	ttc[id] = clock();
+	ttc_prescaler[id] = prescaler;
+
+	return 0;
+}
+
+void timing_reset(uint32_t id)
+{
+	ttc[id] = clock();
+}
+
+void timing_start(uint32_t id)
+{
+	ttc[id] = clock();
+}
+
+void timing_stop(uint32_t id)
+{
+
+}
+
+void timing_close(uint32_t id)
+{
+
+}
+
+uint32_t timing_count_get(uint32_t id)
+{
+	return clock() - ttc[id];
+}
+
+float timing_tick2sec(uint32_t id, uint32_t ticks)
+{
+	return (float) ticks / CLOCKS_PER_SEC;
+}
+
+#endif

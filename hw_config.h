@@ -14,7 +14,8 @@
 #define NUM_ATTRIBUTES   		32
 #define NUM_NODES		 		16
 #define MAX_TREE_DEPTH			5
-#define NUM_INST_MAX			4096
+//#define NUM_INST_MAX			4096
+#define NUM_INST_MAX			6000
 
 #define CEILING(x,y) (((x) + (y) - 1) / (y))
 
