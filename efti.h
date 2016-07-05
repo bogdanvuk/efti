@@ -22,9 +22,9 @@ typedef struct {
 	float complexity_weight;
 }Efti_Conf_t;
 
-int efti_load_instance(int32_t* instance, uint_fast16_t category);
+int efti_load_instance(const int32_t* instance, uint_fast16_t category);
 void efti_init();
-void efti_reset(Efti_Conf_t *conf, int attribute_cnt, int maximum_category);
+void efti_reset(const Efti_Conf_t *conf, int attribute_cnt, int maximum_category);
 tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt, uint32_t* dt_nonleaves_cnt, float* t_hb, float* t_fitness_calc_avg, float* tot_reclass);
 void efti_close();
 float efti_eval(tree_node* dt);

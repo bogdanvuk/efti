@@ -79,27 +79,37 @@ u8 * volatile RxBufferPtr;
 
 #endif
 
-Efti_Conf_t *efti_conf;
+const Efti_Conf_t *efti_conf;
 
 #define rand_norm() ((rand() % 10000) / 10000.0)
 #define TIMING_EFTI_ID					0
 #define TIMING_FITNESS_CALC_ID			1
 
 #define COEF_BANKS_MAX_NUM 		64
+#define LEAVES_MAX				32
+#define NONLEAVES_MAX			32
+#define MAX_WEIGHT_MUTATIONS	16
 
 uint32_t attr_cnt;
 uint32_t inst_cnt;
 uint32_t categ_max;
-uint32_t coef_packed_mem[COEF_BANKS_MAX_NUM];
+//uint32_t coef_packed_mem[COEF_BANKS_MAX_NUM];
 int32_t instances[NUM_INST_MAX][NUM_ATTRIBUTES];
-int32_t last_classification[NUM_INST_MAX];
-int32_t diff_classifications;
+#define CLK_FREQ 	225e+6
+#define CLOCKS_PER_SEC (CLK_FREQ / 4 / 10)
+tree_node* dt_best;
+tree_node* dt_cur;
+uint32_t weights_mutation_cnt;
+uint32_t topology_mutated;
+uint_fast16_t mut_banks[MAX_WEIGHT_MUTATIONS];
+tree_node* mut_nodes[MAX_WEIGHT_MUTATIONS];
+uint32_t mut_masks[MAX_WEIGHT_MUTATIONS];
+uint32_t mut_attr[MAX_WEIGHT_MUTATIONS];
+int32_t mut_attr_val[MAX_WEIGHT_MUTATIONS];
+uint32_t mut_bit[MAX_WEIGHT_MUTATIONS];
+uint32_t mut_bank_val[MAX_WEIGHT_MUTATIONS];
 uint32_t categories[NUM_INST_MAX];
 uint32_t current_iter;
-
-#define LEAVES_MAX				256
-#define NONLEAVES_MAX			256
-#define MAX_WEIGHT_MUTATIONS	128
 
 uint32_t leaves_cnt;
 tree_node* leaves[LEAVES_MAX];
@@ -132,52 +142,52 @@ void get_bank_bit(uint32_t attr, uint32_t bit_pos, uint32_t* bank, uint32_t* ban
 	*bank = attr * COEF_RES / 32;
 	*bank_bit_pos = (attr*COEF_RES + bit_pos) % 32;
 }
-
-int pack_coefs(int32_t coefs[], uint32_t coef_cnt, uint32_t coef_res, uint32_t coef_mem[])
-{
-	uint32_t bank_cnt = 0;
-	uint32_t bank_space_left = 32;
-	uint32_t bank_space_start = 0;
-	uint32_t i;
-	uint32_t coef_rescaled;
-
-	coef_mem[0] = 0;
-
-	for (i = 0; i < coef_cnt; i++)
-	{
-//		coef_rescaled = ((float) coefs[i]) / 0x8000 * (1 << (coef_res - 1));
-
-//		coef_rescaled = coefs[i] * (1 << (coef_res - 1)) / 0x8000;
-
-		coef_rescaled = (uint16_t) coefs[i];
-
-		coef_mem[bank_cnt] |= (coef_rescaled << bank_space_start);
-
-		if (bank_space_left > coef_res)
-		{
-			bank_space_left -= coef_res;
-			bank_space_start += coef_res;
-		}
-		else if (bank_space_left == coef_res)
-		{
-			bank_cnt++;
-			bank_space_left = 32;
-			bank_space_start = 0;
-			coef_mem[bank_cnt] = 0;
-		}
-		else
-		{
-			bank_cnt++;
-			coef_mem[bank_cnt] |= (coef_rescaled >> bank_space_left);
-			bank_space_left = 32;
-			bank_space_start = 0;
-			coef_mem[bank_cnt] = 0;
-		}
-	}
-
-	return bank_cnt;
-
-}
+//
+//int pack_coefs(int32_t coefs[], uint32_t coef_cnt, uint32_t coef_res, uint32_t coef_mem[])
+//{
+//	uint32_t bank_cnt = 0;
+//	uint32_t bank_space_left = 32;
+//	uint32_t bank_space_start = 0;
+//	uint32_t i;
+//	uint32_t coef_rescaled;
+//
+//	coef_mem[0] = 0;
+//
+//	for (i = 0; i < coef_cnt; i++)
+//	{
+////		coef_rescaled = ((float) coefs[i]) / 0x8000 * (1 << (coef_res - 1));
+//
+////		coef_rescaled = coefs[i] * (1 << (coef_res - 1)) / 0x8000;
+//
+//		coef_rescaled = (uint16_t) coefs[i];
+//
+//		coef_mem[bank_cnt] |= (coef_rescaled << bank_space_start);
+//
+//		if (bank_space_left > coef_res)
+//		{
+//			bank_space_left -= coef_res;
+//			bank_space_start += coef_res;
+//		}
+//		else if (bank_space_left == coef_res)
+//		{
+//			bank_cnt++;
+//			bank_space_left = 32;
+//			bank_space_start = 0;
+//			coef_mem[bank_cnt] = 0;
+//		}
+//		else
+//		{
+//			bank_cnt++;
+//			coef_mem[bank_cnt] |= (coef_rescaled >> bank_space_left);
+//			bank_space_left = 32;
+//			bank_space_start = 0;
+//			coef_mem[bank_cnt] = 0;
+//		}
+//	}
+//
+//	return bank_cnt;
+//
+//}
 
 void random_hiperplane(int32_t weights[])
 {
@@ -231,7 +241,7 @@ int efti_clear_instances()
 	return 0;
 }
 
-int efti_load_instance(int32_t* instance, uint_fast16_t category)
+int efti_load_instance(const int32_t* instance, uint_fast16_t category)
 {
 	unsigned i;
 
@@ -281,20 +291,20 @@ int hw_init()
 		 */
 	CfgPtr = XAxiDma_LookupConfig(DMA_DEV_ID);
 	if (!CfgPtr) {
-		xil_printf("No config found for %d\r\n", DMA_DEV_ID);
+		efti_printf("No config found for %d\r\n", DMA_DEV_ID);
 		return XST_FAILURE;
 	}
 
 	Status = XAxiDma_CfgInitialize(&AxiDma, CfgPtr);
 	if (Status != XST_SUCCESS) {
-		xil_printf("Initialization failed %d\r\n", Status);
+		efti_printf("Initialization failed %d\r\n", Status);
 		return XST_FAILURE;
 	}
 
 	XAxiDma_Reset(&AxiDma);
 
 	if(XAxiDma_HasSg(&AxiDma)){
-		xil_printf("Device configured as SG mode \r\n");
+		efti_printf("Device configured as SG mode \r\n");
 		return XST_FAILURE;
 	}
 
@@ -447,11 +457,6 @@ void find_node_distribution(tree_node* dt, volatile uint32_t* rxBuf)
 #if (EFTI_SW == 1)
 
 		node = find_dt_leaf_for_inst(dt, instances[i]);
-		if (last_classification[i] != node) {
-			diff_classifications++;
-		}
-
-		last_classification[i] = node;
 
 #if (EFTI_HW_SW_FITNESS == 1)
 		HbAssert(node == (*rxBuf++));
@@ -517,7 +522,7 @@ void assign_classes(tree_node* dt)
 
     for (i = 1; i <= leaves_cnt; i++)
 	{
-		memset(node_categories_distrib[i], 0, sizeof(uint_fast16_t)*attr_cnt);
+		memset(node_categories_distrib[i], 0, sizeof(uint_fast16_t)*(categ_max + 1));
 	}
 
 #if (EFTI_HW == 1)
@@ -571,7 +576,7 @@ float fitness_eval(tree_node* dt)
 #if ((EFTI_SW == 1) || (EFTI_HW_SW_FITNESS == 1))
     for (i = 1; i <= leaves_cnt; i++)
 	{
-		memset(node_categories_distrib[i], 0, sizeof(uint_fast16_t)*attr_cnt);
+		memset(node_categories_distrib[i], 0, sizeof(uint_fast16_t)*(categ_max+1));
 	}
 
 #if (EFTI_HW_SW_FITNESS == 1)
@@ -703,27 +708,16 @@ void hw_apply_mutation(tree_node* mut_nodes[], uint32_t mut_attr[], uint32_t mut
 
 tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt, uint32_t* dt_nonleaves_cnt, float* t_hb, float* t_fitness_calc_avg, float* tot_reclass)
 {
-	tree_node* dt_best;
-	tree_node* dt_cur;
+	uint32_t ticks;
 	uint32_t returned_to_best_iter;
-	uint64_t ticks_fitness_average = 0;
-	uint64_t ticks_hb = 0;
+	uint32_t ticks_hb = 0;
 
-	uint32_t weights_mutation_cnt;
 	uint32_t stagnation_iter;
 
-	uint_fast16_t mut_banks[MAX_WEIGHT_MUTATIONS];
-	tree_node* mut_nodes[MAX_WEIGHT_MUTATIONS];
-	uint32_t mut_masks[MAX_WEIGHT_MUTATIONS];
-	uint32_t mut_attr[MAX_WEIGHT_MUTATIONS];
-	int32_t mut_attr_val[MAX_WEIGHT_MUTATIONS];
-	uint32_t mut_bit[MAX_WEIGHT_MUTATIONS];
-	uint32_t mut_bank_val[MAX_WEIGHT_MUTATIONS];
-
-	uint32_t topology_mutated;
 	tree_node* temp_mut_hang_tree;
 	tree_node* topo_mut_node;
 	tree_node* topo_mut_sibling;
+	uint16_t weight_temp;
 
 	float topo_mutation_probability;
 	float return_to_best_probability;
@@ -732,8 +726,7 @@ tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt, uint32_t* dt_nonleaves_
 	float fitness_best, fitness_cur, fitness_new;
 	unsigned i;
 
-	timing_reset(TIMING_EFTI_ID);
-	timing_start(TIMING_EFTI_ID);
+	uint32_t exec_time = timing_get();
 
 #if EFTI_HW == 1
 	Xil_Out32(DT_HW_INST_NUM_ADDR, inst_cnt - 1);
@@ -745,7 +738,9 @@ tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt, uint32_t* dt_nonleaves_
 	tree_create_child(dt_cur, CHILD_LEFT);
 	tree_create_child(dt_cur, CHILD_RIGHT);
 	random_hiperplane(dt_cur->weights);
+#if (EFTI_HW == 1)
 	pack_coefs(dt_cur->weights, NUM_ATTRIBUTES + 1, COEF_RES, dt_cur->banks);
+#endif
 
 	dt_best = tree_copy(dt_cur);
 
@@ -770,13 +765,6 @@ tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt, uint32_t* dt_nonleaves_
 		}
 #endif
 
-		// If HB Timing counter is about to overflow (it's only 16-bit counter), save the value and reset the counter
-		if (timing_count_get(TIMING_EFTI_ID) > 0xf000)
-		{
-			ticks_hb += timing_count_get(TIMING_EFTI_ID);
-			timing_reset(TIMING_EFTI_ID);
-		}
-
 		topology_mutated = 0;
 
 		topo_mutation_probability = efti_conf->topology_mutation_rate * leaves_cnt;
@@ -791,12 +779,13 @@ tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt, uint32_t* dt_nonleaves_
 			if ((topo_mut_node->level < (MAX_TREE_DEPTH - 1)) &&
 				((rand() % 2) || (topo_mut_node == dt_cur->left) || (topo_mut_node == dt_cur->right)))
 			{
-//				xil_printf("MA: i=%d, n=%x\n\r", current_iter, (uint32_t) topo_mut_node);
 				topology_mutated = TOPO_CHILDREN_ADDED;
 				tree_create_child(topo_mut_node, CHILD_LEFT);
 				tree_create_child(topo_mut_node, CHILD_RIGHT);
 				random_hiperplane(topo_mut_node->weights);
+#if (EFTI_HW == 1)
 				pack_coefs(topo_mut_node->weights, NUM_ATTRIBUTES + 1, COEF_RES, topo_mut_node->banks);
+#endif
 			}
 			else
 			{
@@ -857,18 +846,12 @@ tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt, uint32_t* dt_nonleaves_
 
 #if (EFTI_SW == 1)
 			mut_attr_val[i] = mut_nodes[i]->weights[mut_attr[i]];
-			uint16_t weight_temp = mut_nodes[i]->weights[mut_attr[i]];
+			weight_temp = mut_nodes[i]->weights[mut_attr[i]];
 			mut_nodes[i]->weights[mut_attr[i]] = (int16_t) (weight_temp ^ (1 << mut_bit[i]));
 #endif
 		}
 
-		timing_reset(TIMING_FITNESS_CALC_ID);
-		timing_start(TIMING_FITNESS_CALC_ID);
-
 		fitness_new = fitness_eval(dt_cur);
-
-		timing_stop(TIMING_FITNESS_CALC_ID);
-		ticks_fitness_average += timing_count_get(TIMING_FITNESS_CALC_ID);
 
 		if ((fitness_new - fitness_cur) > 1e-6)
 		{
@@ -878,7 +861,7 @@ tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt, uint32_t* dt_nonleaves_
 //#endif
 
 			fitness_cur = fitness_new;
-
+			delete_trimmed_subtree(topology_mutated, temp_mut_hang_tree, topo_mut_node);
 			if ((fitness_cur - fitness_best) > 1e-6)
 			{
 				tree_delete_node(dt_best);
@@ -887,19 +870,13 @@ tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt, uint32_t* dt_nonleaves_
 				returned_to_best_iter = current_iter;
 				fitness_best = fitness_cur;
 #if (EFTI_PRINT_STATS == 1)
-				xil_printf("AB: i=%d,f=", current_iter);
-				print_float(fitness_cur, 100);
-				xil_printf(",s=%d", leaves_cnt);
-				xil_printf("\n\r");
+				efti_printf("AB: i=%d,f=%f,s=%d\n", current_iter, fitness_cur, leaves_cnt);
 #endif
 			}
 			else
 			{
 #if (EFTI_PRINT_STATS == 1)
-				xil_printf("CB: i=%d,f=", current_iter);
-				print_float(fitness_cur, 100);
-				xil_printf(",s=%d", leaves_cnt);
-				xil_printf("\n\r");
+				efti_printf("CB: i=%d,f=%f,s=%d\n", current_iter, fitness_cur, leaves_cnt);
 #endif
 			}
 		}
@@ -915,20 +892,18 @@ tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt, uint32_t* dt_nonleaves_
 			/* Should we return to the best yet solution since we are wondering without improvement for a long time? */
 			if (rand_norm() < return_to_best_probability)
 			{
+				delete_trimmed_subtree(topology_mutated, temp_mut_hang_tree, topo_mut_node);
 				tree_delete_node(dt_cur);
 				dt_cur = tree_copy(dt_best);
 				extract_hierarcy(dt_cur);
 #if EFTI_HW == 1
 				hw_set_whole_tree(dt_cur);
 #endif
-
-				delete_trimmed_subtree(topology_mutated, temp_mut_hang_tree, topo_mut_node);
-
 				fitness_cur = fitness_best;
 				returned_to_best_iter = current_iter;
 				stagnation_iter = 0;
 #if (EFTI_PRINT_STATS == 1)
-				xil_printf("RB: i=%d\n\r", current_iter);
+				efti_printf("RB: i=%d\n\r", current_iter);
 #endif
 			}
 			else if (topology_mutated && (rand_norm() < search_probability))
@@ -936,6 +911,9 @@ tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt, uint32_t* dt_nonleaves_
 //#if ((EFTI_HW == 1) && (EFTI_SW == 0))
 //				hw_apply_mutation(mut_nodes, mut_attr, mut_bit, weights_mutation_cnt);
 //#endif
+#if (EFTI_PRINT_STATS == 1)
+				efti_printf("SP: i=%d\n\r", current_iter);
+#endif
 				delete_trimmed_subtree(topology_mutated, temp_mut_hang_tree, topo_mut_node);
 
 				fitness_cur = fitness_new;
@@ -1001,19 +979,15 @@ tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt, uint32_t* dt_nonleaves_
 #endif
 	assign_classes(dt_best);
 
-	uint32_t ticks = (uint32_t) ticks_fitness_average/efti_conf->max_iterations;
-	ticks_hb += timing_count_get(TIMING_EFTI_ID);
+	*t_fitness_calc_avg = 0; //timing_tick2sec(TIMING_FITNESS_CALC_ID, ticks);
 
-	*t_fitness_calc_avg = timing_tick2sec(TIMING_FITNESS_CALC_ID, ticks);
-	*t_hb = timing_tick2sec(TIMING_EFTI_ID, ticks_hb);
+	*t_hb = timing_tick2sec(timing_get() - exec_time);
 
 	*fitness = fitness_best;
 	*dt_leaves_cnt = leaves_cnt;
 	*dt_nonleaves_cnt = nonleaves_cnt;
 #endif
 
-	*tot_reclass = (float) diff_classifications / efti_conf->max_iterations / inst_cnt;
-	efti_printf("Total different classifications: %f\n", *tot_reclass);
 	return dt_best;
 }
 
@@ -1028,11 +1002,10 @@ float efti_eval(tree_node* dt)
 	return dt_eval(dt);
 }
 
-void efti_reset(Efti_Conf_t *conf, int attribute_cnt, int maximum_category)
+void efti_reset(const Efti_Conf_t *conf, int attribute_cnt, int maximum_category)
 {
 	attr_cnt = attribute_cnt;
 	categ_max = maximum_category;
-	diff_classifications = 0;
 	efti_conf = conf;
 	inst_cnt = 0;
 }
@@ -1043,13 +1016,11 @@ void efti_init()
 	hw_init();
 #endif
 
-	timing_init(TIMING_FITNESS_CALC_ID, 0xffff, 0);
 	timing_init(TIMING_EFTI_ID, 0xffff, 0xf);
 }
 
 void efti_close()
 {
-	timing_close(TIMING_FITNESS_CALC_ID);
 	timing_close(TIMING_EFTI_ID);
 }
 
