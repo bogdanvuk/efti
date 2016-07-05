@@ -25,6 +25,7 @@ struct tree_el{
 	uint32_t banks[DT_MEM_BANKS_NUM];
 	uint32_t level;
 	uint32_t id;
+	uint32_t cls;
 	struct tree_el* left;
 	struct tree_el* right;
 	struct tree_el* parent;

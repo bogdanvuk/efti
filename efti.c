@@ -7,6 +7,9 @@
 #include <math.h>
 #include "util.h"
 #include "timing.h"
+#include "dataset.h"
+#include "dt2js.h"
+#include <stdio.h>
 
 #if EFTI_HW == 1
 
@@ -93,6 +96,7 @@ const Efti_Conf_t *efti_conf;
 uint32_t attr_cnt;
 uint32_t inst_cnt;
 uint32_t categ_max;
+T_Dataset* dataset;
 //uint32_t coef_packed_mem[COEF_BANKS_MAX_NUM];
 int32_t instances[NUM_INST_MAX][NUM_ATTRIBUTES];
 #define CLK_FREQ 	225e+6
@@ -111,6 +115,7 @@ uint32_t mut_bank_val[MAX_WEIGHT_MUTATIONS];
 uint32_t categories[NUM_INST_MAX];
 uint32_t current_iter;
 
+float accuracy;
 uint32_t leaves_cnt;
 tree_node* leaves[LEAVES_MAX];
 uint32_t nonleaves_cnt;
@@ -551,7 +556,7 @@ void assign_classes(tree_node* dt)
 			}
 		}
 
-		leaves[i-1]->id = dominant_category;
+		leaves[i-1]->cls = dominant_category;
 	}
 }
 
@@ -559,7 +564,7 @@ float fitness_eval(tree_node* dt)
 {
     uint_fast16_t hits;
     uint32_t status;
-    float accuracy;
+    float fitness;
     //uint32_t accuracy;
 
 #if ((EFTI_SW == 1) || (EFTI_HW_SW_FITNESS == 1))
@@ -594,17 +599,20 @@ float fitness_eval(tree_node* dt)
 	{
 		uint_fast16_t* node_distrib = &node_categories_distrib[i][1];
 		uint_fast16_t dominant_category_cnt = *node_distrib;
+		uint_fast16_t dominant_category = 1;
 
 		for (j = 1; j < categ_max; j++)
 		{
 			uint_fast16_t categ_cnt = *(++node_distrib);
 			if (dominant_category_cnt < categ_cnt)
 			{
+				dominant_category = j+1;
 				dominant_category_cnt = categ_cnt;
 			}
 		}
 
 		hits += dominant_category_cnt;
+		leaves[i-1]->cls = dominant_category;
 	}
 #endif
 
@@ -624,9 +632,9 @@ float fitness_eval(tree_node* dt)
 #endif
 
     accuracy = ((float) hits)/inst_cnt;
-    accuracy *= (efti_conf->complexity_weight*(((float) categ_max) - ((float) leaves_cnt))/((float)categ_max) + 1);
+    fitness = accuracy * (efti_conf->complexity_weight*(((float) categ_max) - ((float) leaves_cnt))/((float)categ_max) + 1);
 
-    return accuracy;
+    return fitness;
 
 }
 
@@ -725,6 +733,8 @@ tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt, uint32_t* dt_nonleaves_
 
 	float fitness_best, fitness_cur, fitness_new;
 	unsigned i;
+	char fn[512];
+	char* fn_fmt = "/data/projects/rst/examples/doktorat/source/images/efti_overview_dts/json/%d.js";
 
 	uint32_t exec_time = timing_get();
 
@@ -756,6 +766,10 @@ tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt, uint32_t* dt_nonleaves_
 	temp_mut_hang_tree = NULL;
 	topo_mut_node = NULL;
 	topo_mut_sibling = NULL;
+
+	sprintf(fn, fn_fmt, 0);
+	dump_dt2json(fn, dt_cur, dataset);
+	efti_printf("iter: %06d, fitness: %.3f, size: %d, accuracy: %.3f\n", 0, fitness_cur, leaves_cnt, accuracy);
 
 	for (current_iter = 0; current_iter < efti_conf->max_iterations; current_iter++)
 	{
@@ -851,6 +865,9 @@ tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt, uint32_t* dt_nonleaves_
 #endif
 		}
 
+		if (current_iter == 3133) {
+			current_iter = 3133;
+		}
 		fitness_new = fitness_eval(dt_cur);
 
 		if ((fitness_new - fitness_cur) > 1e-6)
@@ -869,6 +886,9 @@ tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt, uint32_t* dt_nonleaves_
 
 				returned_to_best_iter = current_iter;
 				fitness_best = fitness_cur;
+				sprintf(fn, fn_fmt, current_iter);
+				dump_dt2json(fn, dt_cur, dataset);
+				efti_printf("iter: %06d, fitness: %.3f, size: %d, accuracy: %.3f\n", current_iter, fitness_cur, leaves_cnt, accuracy);
 #if (EFTI_PRINT_STATS == 1)
 				efti_printf("AB: i=%d,f=%f,s=%d\n", current_iter, fitness_cur, leaves_cnt);
 #endif
@@ -1002,10 +1022,11 @@ float efti_eval(tree_node* dt)
 	return dt_eval(dt);
 }
 
-void efti_reset(const Efti_Conf_t *conf, int attribute_cnt, int maximum_category)
+void efti_reset(const Efti_Conf_t *conf, T_Dataset* ds)
 {
-	attr_cnt = attribute_cnt;
-	categ_max = maximum_category;
+	attr_cnt = ds->attr_cnt;
+	categ_max = ds->categ_max;
+	dataset = ds;
 	efti_conf = conf;
 	inst_cnt = 0;
 }

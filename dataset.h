@@ -8,6 +8,8 @@
 #ifndef DATASET_H_
 #define DATASET_H_
 
+#include <stdint.h>
+
 typedef struct
 {
 	uint32_t inst_cnt;
