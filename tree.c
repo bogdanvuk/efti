@@ -15,11 +15,11 @@ uint32_t node_pool_next_free = 0;
 void tree_init()
 {
 	unsigned i;
+	node_pool_next_free = 0;
 
 	for (i = 0; i < NODE_POOL_MAX; i++)
 	{
 		node_pool_alloc[i] = 0;
-		node_pool_next_free = 0;
 	}
 }
 

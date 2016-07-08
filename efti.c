@@ -84,15 +84,16 @@ u8 * volatile RxBufferPtr;
 
 const Efti_Conf_t *efti_conf;
 
-#define rand_norm() ((rand() % 10000) / 10000.0)
+#define rand_norm() ((rand_r(seedp) % 10000) / 10000.0)
 #define TIMING_EFTI_ID					0
 #define TIMING_FITNESS_CALC_ID			1
 
 #define COEF_BANKS_MAX_NUM 		64
-#define LEAVES_MAX				32
-#define NONLEAVES_MAX			32
-#define MAX_WEIGHT_MUTATIONS	16
+#define LEAVES_MAX				NUM_NODES
+#define NONLEAVES_MAX			NUM_NODES
+#define MAX_WEIGHT_MUTATIONS	NUM_NODES
 
+unsigned int *seedp;
 uint32_t attr_cnt;
 uint32_t inst_cnt;
 uint32_t categ_max;
@@ -122,7 +123,9 @@ uint32_t nonleaves_cnt;
 tree_node* nonleaves[NONLEAVES_MAX];
 tree_node* node_hierarchy[MAX_TREE_DEPTH][NUM_NODES];
 uint32_t node_hierarchy_cnt[MAX_TREE_DEPTH];
-uint_fast16_t node_categories_distrib[LEAVES_MAX][NUM_ATTRIBUTES];
+//Enumeration of leaves starts from 1, so it is cheaper to ignore the first
+//row to distribution matrix, and hence have one more in total
+uint_fast16_t node_categories_distrib[LEAVES_MAX+1][NUM_ATTRIBUTES];
 
 uint32_t non_eval_ticks = 0;
 
@@ -203,11 +206,11 @@ void random_hiperplane(int32_t weights[])
     float delta;
     int i;
 
-    inst_i = rand() % inst_cnt;
+    inst_i = rand_r(seedp) % inst_cnt;
     inst_j = inst_i;
     while (categories[inst_i] == categories[inst_j])
     {
-        inst_j = rand() % inst_cnt;
+        inst_j = rand_r(seedp) % inst_cnt;
     }
 
     for (i = 0; i < attr_cnt; i++)
@@ -215,7 +218,7 @@ void random_hiperplane(int32_t weights[])
         weights[i] = instances[inst_i][i] - instances[inst_j][i];
     }
 
-    delta = ((float) (rand() % 100)) / 100;
+    delta = ((float) (rand_r(seedp) % 100)) / 100;
 
     res_i = 0;
     res_j = 0;
@@ -252,7 +255,7 @@ int efti_load_instance(const int32_t* instance, uint_fast16_t category)
 
 	for (i = 0; i < attr_cnt; i++)
 	{
-		instances[inst_cnt][i] = instance[i];
+		instances[inst_cnt][i] = (instance[i] + 1);
 	}
 
 //	Xil_Out32(INST_MEM_BASE(inst_cnt), coef_packed_mem[0]);
@@ -505,7 +508,7 @@ float dt_eval(tree_node* dt)
 #endif
 		uint32_t categ = categories[i];
 
-		if (categ == node)
+		if (categ == leaves[node-1]->cls)
 		{
 			hits++;
 		}
@@ -714,11 +717,9 @@ void hw_apply_mutation(tree_node* mut_nodes[], uint32_t mut_attr[], uint32_t mut
 	}
 }
 
-tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt, uint32_t* dt_nonleaves_cnt, float* t_hb, float* t_fitness_calc_avg, float* tot_reclass)
+tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt, uint32_t* dt_nonleaves_cnt, float* t_hb, unsigned int *seed)
 {
-	uint32_t ticks;
 	uint32_t returned_to_best_iter;
-	uint32_t ticks_hb = 0;
 
 	uint32_t stagnation_iter;
 
@@ -738,6 +739,7 @@ tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt, uint32_t* dt_nonleaves_
 
 	uint32_t exec_time = timing_get();
 
+	seedp = seed;
 #if EFTI_HW == 1
 	Xil_Out32(DT_HW_INST_NUM_ADDR, inst_cnt - 1);
 #endif
@@ -767,9 +769,9 @@ tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt, uint32_t* dt_nonleaves_
 	topo_mut_node = NULL;
 	topo_mut_sibling = NULL;
 
-	sprintf(fn, fn_fmt, 0);
-	dump_dt2json(fn, dt_cur, dataset);
-	efti_printf("iter: %06d, fitness: %.3f, size: %d, accuracy: %.3f\n", 0, fitness_cur, leaves_cnt, accuracy);
+//	sprintf(fn, fn_fmt, 0);
+//	dump_dt2json(fn, dt_cur, dataset);
+//	efti_printf("iter: %06d, fitness: %.3f, size: %d, accuracy: %.3f\n", 0, fitness_cur, leaves_cnt, accuracy);
 
 	for (current_iter = 0; current_iter < efti_conf->max_iterations; current_iter++)
 	{
@@ -787,11 +789,11 @@ tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt, uint32_t* dt_nonleaves_
 
 		if (topo_mutation_probability > rand_norm())
 		{
-			topo_mut_node = leaves[rand() % leaves_cnt];
+			topo_mut_node = leaves[rand_r(seedp) % leaves_cnt];
 
 			/* 50% chance to add or delete a node */
 			if ((topo_mut_node->level < (MAX_TREE_DEPTH - 1)) &&
-				((rand() % 2) || (topo_mut_node == dt_cur->left) || (topo_mut_node == dt_cur->right)))
+				((rand_r(seedp) % 2) || (topo_mut_node == dt_cur->left) || (topo_mut_node == dt_cur->right)))
 			{
 				topology_mutated = TOPO_CHILDREN_ADDED;
 				tree_create_child(topo_mut_node, CHILD_LEFT);
@@ -834,20 +836,20 @@ tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt, uint32_t* dt_nonleaves_
 		for (i = 0; i < weights_mutation_cnt; i++)
 		{
 			uint32_t mut_mask_bit;
-			mut_nodes[i] = nonleaves[rand() % nonleaves_cnt];
+			mut_nodes[i] = nonleaves[rand_r(seedp) % nonleaves_cnt];
 
-			if (rand() % 2)
+			if (rand_r(seedp) % 2)
 			{
-				mut_attr[i] = rand() % attr_cnt;
+				mut_attr[i] = rand_r(seedp) % attr_cnt;
 			}
 			else
 			{
 				mut_attr[i] = NUM_ATTRIBUTES;
 			}
 
-			mut_bit[i] = rand() % COEF_RES;
-//			mut_banks[i] = rand() % DT_MEM_COEF_BANKS_NUM;
-//			mut_masks[i] = 1 << (rand() % 32);
+			mut_bit[i] = rand_r(seedp) % COEF_RES;
+//			mut_banks[i] = rand_r(seedp) % DT_MEM_COEF_BANKS_NUM;
+//			mut_masks[i] = 1 << (rand_r(seedp) % 32);
 
 #if (EFTI_HW == 1)
 			get_bank_bit(mut_attr[i], mut_bit[i], &mut_banks[i], &mut_mask_bit);
@@ -865,9 +867,6 @@ tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt, uint32_t* dt_nonleaves_
 #endif
 		}
 
-		if (current_iter == 3133) {
-			current_iter = 3133;
-		}
 		fitness_new = fitness_eval(dt_cur);
 
 		if ((fitness_new - fitness_cur) > 1e-6)
@@ -886,9 +885,9 @@ tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt, uint32_t* dt_nonleaves_
 
 				returned_to_best_iter = current_iter;
 				fitness_best = fitness_cur;
-				sprintf(fn, fn_fmt, current_iter);
-				dump_dt2json(fn, dt_cur, dataset);
-				efti_printf("iter: %06d, fitness: %.3f, size: %d, accuracy: %.3f\n", current_iter, fitness_cur, leaves_cnt, accuracy);
+//				sprintf(fn, fn_fmt, current_iter);
+//				dump_dt2json(fn, dt_cur, dataset);
+//				efti_printf("iter: %06d, fitness: %.3f, size: %d, accuracy: %.3f\n", current_iter, fitness_cur, leaves_cnt, accuracy);
 #if (EFTI_PRINT_STATS == 1)
 				efti_printf("AB: i=%d,f=%f,s=%d\n", current_iter, fitness_cur, leaves_cnt);
 #endif
@@ -998,8 +997,6 @@ tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt, uint32_t* dt_nonleaves_
 	hw_set_whole_tree(dt_best);
 #endif
 	assign_classes(dt_best);
-
-	*t_fitness_calc_avg = 0; //timing_tick2sec(TIMING_FITNESS_CALC_ID, ticks);
 
 	*t_hb = timing_tick2sec(timing_get() - exec_time);
 
