@@ -16,22 +16,23 @@
 #include <getopt.h>
 
 #define EFTI_CROSSVALIDATION			1
-#define EFTI_CROSSVALIDATION_SINGLE		0
-#define EFTI_CROSSVALIDATION_ALL		1
+#define EFTI_CROSSVALIDATION_SINGLE		1
+#define EFTI_CROSSVALIDATION_ALL		0
 #define EFTI_CROSSVALIDATION_RUNS		5
-#define MAX_ITERATIONS 			500000
+#define MAX_ITERATIONS 			1000000
 #define SEED					29
 
 Efti_Conf_t efti_config = {
 	MAX_ITERATIONS,	// max_iterations
-	0.003,  // topology_mutation_rate;
-	0.02, 	// weights_mutation_rate;
-	0.001, 	// search_probability;
+	0.002,  // topology_mutation_rate;
+	0.01, 	// weights_mutation_rate;
+	0.01, 	// search_probability;
 	0.001, 	// search_probability_raise_due_to_stagnation_step;
-	0.0001, // topo_mutation_rate_raise_due_to_stagnation_step;
-	0.0001, // weight_mutation_rate_raise_due_to_stagnation_step;
-	5e-11,  // return_to_best_prob_iteration_increment;
-	0.01,   // complexity_weight;
+	0.00005, // topo_mutation_rate_raise_due_to_stagnation_step;
+	0.00004, // weight_mutation_rate_raise_due_to_stagnation_step;
+	5e-7,  // return_to_best_prob_iteration_increment;
+	0.2,   // complexity_weight;
+	0.2,   // impurity_weight
 };
 
 #if EFTI_CROSSVALIDATION_SINGLE == 1
@@ -49,7 +50,7 @@ T_Dataset*	datasets[DATASETS_NUM] = {
 #if EFTI_CROSSVALIDATION_ALL == 1
 
 #define CROSSVALIDS_NUM	5
-#define DATASETS_NUM	20
+#define DATASETS_NUM	16
 
 extern T_Dataset ausc_dataset;
 extern T_Dataset bc_dataset;
@@ -73,10 +74,10 @@ extern T_Dataset w40_dataset;
 extern T_Dataset zoo_dataset;
 
 T_Dataset*	datasets[DATASETS_NUM] = {
-	&ausc_dataset,
-	&bc_dataset,
-	&bcw_dataset,
-	&ger_dataset,
+//	&ausc_dataset,
+//	&bc_dataset,
+//	&bcw_dataset,
+//	&ger_dataset,
 	&gls_dataset,
 	&hep_dataset,
 	&hrts_dataset,

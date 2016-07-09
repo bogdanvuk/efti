@@ -21,6 +21,7 @@ typedef struct {
 	float weight_mutation_rate_raise_due_to_stagnation_step;
 	float return_to_best_prob_iteration_increment;
 	float complexity_weight;
+	float impurity_weight;
 }Efti_Conf_t;
 
 int efti_load_instance(const int32_t* instance, uint_fast16_t category);

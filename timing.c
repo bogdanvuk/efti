@@ -284,13 +284,13 @@ void timing_close(uint32_t id)
 
 }
 
-uint32_t timing_get(uint32_t id)
+uint32_t timing_get()
 {
-	return 0;
+	return clock();
 //	return clock() - ttc[id];
 }
 
-float timing_tick2sec(uint32_t id, uint32_t ticks)
+float timing_tick2sec(uint32_t ticks)
 {
 	return (float) ticks / CLOCKS_PER_SEC;
 }

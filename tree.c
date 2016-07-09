@@ -25,26 +25,28 @@ void tree_init()
 
 tree_node* node_alloc()
 {
-	while (node_pool_alloc[node_pool_next_free])
-	{
-		node_pool_next_free++;
-	}
-
-	node_pool_alloc[node_pool_next_free] = 1;
-	return &node_pool[node_pool_next_free];
+	return malloc(sizeof(tree_node));
+//	while (node_pool_alloc[node_pool_next_free])
+//	{
+//		node_pool_next_free++;
+//	}
+//
+//	node_pool_alloc[node_pool_next_free] = 1;
+//	return &node_pool[node_pool_next_free];
 }
 
 void node_free(tree_node* node)
 {
-//	uint32_t node_index = (((uint32_t) node) - ((uint32_t) node_pool)) >> NODE_SIZE_BITS;
-	uint32_t node_index = node - node_pool;
-
-	node_pool_alloc[node_index] = 0;
-
-	if (node_index < node_pool_next_free)
-	{
-		node_pool_next_free = node_index;
-	}
+	free(node);
+////	uint32_t node_index = (((uint32_t) node) - ((uint32_t) node_pool)) >> NODE_SIZE_BITS;
+//	uint32_t node_index = node - node_pool;
+//
+//	node_pool_alloc[node_index] = 0;
+//
+//	if (node_index < node_pool_next_free)
+//	{
+//		node_pool_next_free = node_index;
+//	}
 }
 
 tree_node* tree_create()

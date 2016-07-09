@@ -273,7 +273,7 @@ inline int64_t evaluate_node_test(int32_t v1[], int32_t v2[], uint_fast64_t v_le
                 v1[30]*v2[30] + v1[31]*v2[31];
 
             return res;
-#if 0
+
         case 33:
             res = 
                 v1[ 0]*v2[ 0] + v1[ 1]*v2[ 1] + v1[ 2]*v2[ 2] + v1[ 3]*v2[ 3] + v1[ 4]*v2[ 4] + v1[ 5]*v2[ 5] + 
@@ -689,7 +689,7 @@ inline int64_t evaluate_node_test(int32_t v1[], int32_t v2[], uint_fast64_t v_le
                 v1[60]*v2[60] + v1[61]*v2[61] + v1[62]*v2[62];
 
             return res;
-
+#if 0
         case 64:
             res = 
                 v1[ 0]*v2[ 0] + v1[ 1]*v2[ 1] + v1[ 2]*v2[ 2] + v1[ 3]*v2[ 3] + v1[ 4]*v2[ 4] + v1[ 5]*v2[ 5] + 
