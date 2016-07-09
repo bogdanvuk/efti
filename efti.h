@@ -22,6 +22,8 @@ typedef struct {
 	float return_to_best_prob_iteration_increment;
 	float complexity_weight;
 	float impurity_weight;
+	int use_impurity_topo_mut;
+	int use_impurity_weight_mut;
 }Efti_Conf_t;
 
 int efti_load_instance(const int32_t* instance, uint_fast16_t category);

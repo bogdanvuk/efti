@@ -16,8 +16,8 @@
 #include <getopt.h>
 
 #define EFTI_CROSSVALIDATION			1
-#define EFTI_CROSSVALIDATION_SINGLE		1
-#define EFTI_CROSSVALIDATION_ALL		0
+#define EFTI_CROSSVALIDATION_SINGLE		0
+#define EFTI_CROSSVALIDATION_ALL		1
 #define EFTI_CROSSVALIDATION_RUNS		5
 #define MAX_ITERATIONS 			1000000
 #define SEED					29
@@ -32,7 +32,9 @@ Efti_Conf_t efti_config = {
 	0.00004, // weight_mutation_rate_raise_due_to_stagnation_step;
 	5e-7,  // return_to_best_prob_iteration_increment;
 	0.2,   // complexity_weight;
-	0.2,   // impurity_weight
+	0.2,   // impurity_weight;
+    1,     // use_impurity_topo_mut;
+	0     // use_impurity_weight_mut;
 };
 
 #if EFTI_CROSSVALIDATION_SINGLE == 1
@@ -50,7 +52,7 @@ T_Dataset*	datasets[DATASETS_NUM] = {
 #if EFTI_CROSSVALIDATION_ALL == 1
 
 #define CROSSVALIDS_NUM	5
-#define DATASETS_NUM	16
+#define DATASETS_NUM	20
 
 extern T_Dataset ausc_dataset;
 extern T_Dataset bc_dataset;
@@ -74,10 +76,10 @@ extern T_Dataset w40_dataset;
 extern T_Dataset zoo_dataset;
 
 T_Dataset*	datasets[DATASETS_NUM] = {
-//	&ausc_dataset,
-//	&bc_dataset,
-//	&bcw_dataset,
-//	&ger_dataset,
+	&ausc_dataset,
+	&bc_dataset,
+	&bcw_dataset,
+	&ger_dataset,
 	&gls_dataset,
 	&hep_dataset,
 	&hrts_dataset,

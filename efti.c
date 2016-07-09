@@ -668,7 +668,7 @@ float fitness_eval(tree_node* dt)
 		leaves_total_inst_cnt[i-1] = total_leaf_inst_cnt;
 	}
 
-	for (i = nonleaves_cnt - 1; i >= 0; i++) {
+	for (i = nonleaves_cnt - 1; i >= 0; i--) {
 		nonleaves[i]->impurity = nonleaves[i]->left->impurity + nonleaves[i]->right->impurity;
 	}
 
@@ -852,24 +852,32 @@ tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt, uint32_t* dt_nonleaves_
 
 		if (topo_mutation_probability > rand_norm())
 		{
-			tot_impurity = 0;
 			float tot_inv_fullness = 0;
-			for (i = 0; i < leaves_cnt; i++) {
-				tot_impurity += leaves[i]->impurity;
-				tot_inv_fullness = 1.0 / (leaves_total_inst_cnt[i] + 1); // +1 not to divise by zero when no instance in leaf
+			if (efti_conf->use_impurity_topo_mut) {
+				tot_impurity = 0;
+				for (i = 0; i < leaves_cnt; i++) {
+					tot_impurity += leaves[i]->impurity;
+					tot_inv_fullness = 1.0 / (leaves_total_inst_cnt[i] + 1); // +1 not to divise by zero when no instance in leaf
+				}
 			}
 
 			while (topology_mutated == 0) {
-				topo_mut_node = NULL;
+				if (!efti_conf->use_impurity_topo_mut) {
+					topo_mut_node = leaves[rand_r(seedp) % leaves_cnt];
+				} else {
+					topo_mut_node = NULL;
+				}
 
 				if (rand_r(seedp) % 2) {
-					float rand_scaled = (float) rand_r(seedp) / RAND_MAX * tot_impurity;
+					if (efti_conf->use_impurity_topo_mut) {
+						float rand_scaled = (float) rand_r(seedp) / RAND_MAX * tot_impurity;
 
-					for (i = 0; i < leaves_cnt; i++) {
-						rand_scaled -= leaves[i]->impurity;
-						if (rand_scaled <= 0) {
-							topo_mut_node = leaves[i];
-							break;
+						for (i = 0; i < leaves_cnt; i++) {
+							rand_scaled -= leaves[i]->impurity;
+							if (rand_scaled <= 0) {
+								topo_mut_node = leaves[i];
+								break;
+							}
 						}
 					}
 
@@ -884,13 +892,15 @@ tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt, uint32_t* dt_nonleaves_
 #endif
 					}
 				} else {
-					float rand_scaled = (float) rand_r(seedp) / RAND_MAX * tot_inv_fullness;
+					if (efti_conf->use_impurity_topo_mut) {
+						float rand_scaled = (float) rand_r(seedp) / RAND_MAX * tot_inv_fullness;
 
-					for (i = 0; i < leaves_cnt; i++) {
-						rand_scaled -= 1.0 / (leaves_total_inst_cnt[i] + 1);
-						if (rand_scaled <= 0) {
-							topo_mut_node = leaves[i];
-							break;
+						for (i = 0; i < leaves_cnt; i++) {
+							rand_scaled -= 1.0 / (leaves_total_inst_cnt[i] + 1);
+							if (rand_scaled <= 0) {
+								topo_mut_node = leaves[i];
+								break;
+							}
 						}
 					}
 
@@ -932,18 +942,22 @@ tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt, uint32_t* dt_nonleaves_
 		for (i = 0; i < weights_mutation_cnt; i++)
 		{
 			uint32_t mut_mask_bit;
-			float tot_node_impurity = 0;
-			for (j = 0; j < nonleaves_cnt; j++) {
-				tot_node_impurity += nonleaves[j]->impurity;
-			}
+			if (!efti_conf->use_impurity_weight_mut) {
+				mut_nodes[i] = nonleaves[rand_r(seedp) % nonleaves_cnt];
+			} else {
+				float tot_node_impurity = 0;
+				for (j = 0; j < nonleaves_cnt; j++) {
+					tot_node_impurity += nonleaves[j]->impurity;
+				}
 
-			float rand_scaled = (float) rand_r(seedp) / RAND_MAX * tot_node_impurity;
+				float rand_scaled = (float) rand_r(seedp) / RAND_MAX * tot_node_impurity;
 
-			for (j = 0; j < nonleaves_cnt; j++) {
-				rand_scaled -= nonleaves[j]->impurity;
-				if (rand_scaled <= 0) {
-					mut_nodes[i] = nonleaves[j];
-					break;
+				for (j = 0; j < nonleaves_cnt; j++) {
+					rand_scaled -= nonleaves[j]->impurity;
+					if (rand_scaled <= 0) {
+						mut_nodes[i] = nonleaves[j];
+						break;
+					}
 				}
 			}
 
