@@ -52,49 +52,79 @@ T_Dataset*	datasets[DATASETS_NUM] = {
 #if EFTI_CROSSVALIDATION_ALL == 1
 
 #define CROSSVALIDS_NUM	5
-#define DATASETS_NUM	20
+#define DATASETS_NUM	35
 
 extern T_Dataset ausc_dataset;
 extern T_Dataset bc_dataset;
 extern T_Dataset bcw_dataset;
+extern T_Dataset ca_dataset;
+extern T_Dataset car_dataset;
+extern T_Dataset cmc_dataset;
+extern T_Dataset ctg_dataset;
 extern T_Dataset ger_dataset;
 extern T_Dataset gls_dataset;
 extern T_Dataset hep_dataset;
 extern T_Dataset hrts_dataset;
 extern T_Dataset ion_dataset;
 extern T_Dataset irs_dataset;
+extern T_Dataset jvow_dataset;
 extern T_Dataset liv_dataset;
 extern T_Dataset lym_dataset;
 extern T_Dataset page_dataset;
 extern T_Dataset pid_dataset;
+extern T_Dataset psd_dataset;
+extern T_Dataset sb_dataset;
+extern T_Dataset seg_dataset;
+extern T_Dataset sick_dataset;
 extern T_Dataset son_dataset;
+extern T_Dataset spect_dataset;
+extern T_Dataset spf_dataset;
 extern T_Dataset thy_dataset;
+extern T_Dataset ttt_dataset;
 extern T_Dataset veh_dataset;
 extern T_Dataset vote_dataset;
 extern T_Dataset vow_dataset;
+extern T_Dataset w21_dataset;
 extern T_Dataset w40_dataset;
+extern T_Dataset wfr_dataset;
+extern T_Dataset wine_dataset;
 extern T_Dataset zoo_dataset;
 
 T_Dataset*	datasets[DATASETS_NUM] = {
 	&ausc_dataset,
 	&bc_dataset,
 	&bcw_dataset,
+	&ca_dataset,
+	&car_dataset,
+	&cmc_dataset,
+	&ctg_dataset,
 	&ger_dataset,
 	&gls_dataset,
 	&hep_dataset,
 	&hrts_dataset,
 	&ion_dataset,
 	&irs_dataset,
+	&jvow_dataset,
 	&liv_dataset,
 	&lym_dataset,
 	&page_dataset,
 	&pid_dataset,
+	&psd_dataset,
+	&sb_dataset,
+	&seg_dataset,
+	&sick_dataset,
 	&son_dataset,
+	&spect_dataset,
+	&spf_dataset,
 	&thy_dataset,
+	&ttt_dataset,
 	&veh_dataset,
 	&vote_dataset,
 	&vow_dataset,
+	&w21_dataset,
 	&w40_dataset,
+	&wfr_dataset,
+	&wine_dataset,
 	&zoo_dataset
 };
 
@@ -207,7 +237,10 @@ int crossvalidation()
 	efti_init();
 
 #if (EFTI_CROSSVALIDATION == 1)
-	efti_printf("$efti_config:max_iterations=%d,topology_mutation_rate=%e,weights_mutation_rate=%e,search_probability=%e,search_probability_raise_due_to_stagnation_step=%e,weight_mutation_rate_raise_due_to_stagnation_step=%e,return_to_best_prob_iteration_increment=%e,complexity_weight=%e,seed=%d\n",
+	efti_printf("$efti_config:max_iterations=%d,topology_mutation_rate=%e,"
+			"weights_mutation_rate=%e,search_probability=%e,search_probability_raise_due_to_stagnation_step=%e,"
+			"weight_mutation_rate_raise_due_to_stagnation_step=%e,return_to_best_prob_iteration_increment=%e,"
+			"complexity_weight=%e,impurity_weight=%e,use_impurity_topo_mut=%d,use_impurity_weight_mut=%d,seed=%d\n",
 			efti_config.max_iterations,
 			efti_config.topology_mutation_rate,
 			efti_config.weights_mutation_rate,
@@ -216,6 +249,9 @@ int crossvalidation()
 			efti_config.weight_mutation_rate_raise_due_to_stagnation_step,
 			efti_config.return_to_best_prob_iteration_increment,
 			efti_config.complexity_weight,
+			efti_config.impurity_weight,
+			efti_config.use_impurity_topo_mut,
+			efti_config.use_impurity_weight_mut,
 			SEED
 			);
 
@@ -312,11 +348,14 @@ int main(int argc, char *argv[]) {
 		{"w_accel_stagn",  optional_argument, 0,  'z' },
 		{"return_prob",  optional_argument, 0,  'r' },
 		{"oversize_w",  optional_argument, 0,  'o' },
+		{"impurity_w",  optional_argument, 0,  'i' },
+		{"impurity_topomut",  optional_argument, 0,  'a' },
+		{"impurity_weightmut",  optional_argument, 0,  'b' },
         {0,           0,                 0,  0   }
     };
 
     int long_index =0;
-    while ((opt = getopt_long(argc, argv,"m::t::w::s::x::y::z::r::o::",
+    while ((opt = getopt_long(argc, argv,"m::t::w::s::x::y::z::r::o::i::a::b::",
                    long_options, &long_index )) != -1) {
         switch (opt) {
              case 'm' : efti_config.max_iterations = atoi(optarg);
@@ -336,6 +375,12 @@ int main(int argc, char *argv[]) {
              case 'r' : efti_config.return_to_best_prob_iteration_increment = atof(optarg);
                  break;
              case 'o' : efti_config.complexity_weight = atof(optarg);
+                 break;
+             case 'i' : efti_config.impurity_weight = atof(optarg);
+                 break;
+             case 'a' : efti_config.use_impurity_topo_mut = atof(optarg);
+                 break;
+             case 'b' : efti_config.use_impurity_weight_mut = atof(optarg);
                  break;
              default: print_usage();
                  exit(EXIT_FAILURE);
