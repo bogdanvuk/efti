@@ -1,13 +1,11 @@
 LDFLAGS =
-
-release: OBJDIR=rel/obj
-debug: OBJDIR=dbg/obj
+OBJDIR = obj
 
 CFLAGS =
 CPPFLAGS = -DEFTI_SW=1 -DEFTI_HW=0
 SRCDIRS  = src src/datasets
 INCLUDE = -Isrc
-SRCS    := $(shell find $(SRCDIR) -name '*.c')
+SRCS    := $(shell find $(SRCDIRS) -name '*.c')
 OBJS    := $(patsubst %.c,$(OBJDIR)/%.o,$(SRCS))
 
 release: CFLAGS += -Ofast
