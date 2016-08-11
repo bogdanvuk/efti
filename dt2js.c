@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
 
 int find_node_id(tree_node* n, tree_node* ids[], int ids_cnt) {
 	int i;

@@ -11,6 +11,10 @@
 #include "dt2js.h"
 #include <stdio.h>
 
+#if (DT_USE_LOOP_UNFOLD == 1)
+#include "loop_unfold.h"
+#endif
+
 #if EFTI_HW == 1
 
 #include "xil_io.h"
@@ -433,10 +437,6 @@ int extract_hierarcy(tree_node* dt)
 
 	return _extract_hierarcy(dt, 0);
 }
-
-#if (DT_USE_LOOP_UNFOLD == 1)
-#include "loop_unfold.cpp"
-#endif
 
 uint32_t find_dt_leaf_for_inst(tree_node* dt, int32_t attributes[])
 {
