@@ -1,21 +1,23 @@
 LDFLAGS =
-OBJDIR = obj
+OBJDIR = rel
 
 CFLAGS =
 CPPFLAGS = -DEFTI_SW=1 -DEFTI_HW=0
 SRCDIRS  = src src/datasets
 INCLUDE = -Isrc
-SRCS    := $(shell find $(SRCDIRS) -name '*.c')
+SRCS    := $(shell find $(SRCDIRS) -maxdepth 1 -name '*.c')
 OBJS    := $(patsubst %.c,$(OBJDIR)/%.o,$(SRCS))
 
-release: CFLAGS += -Ofast
-release: efti
+rel: CFLAGS += -Ofast
+rel: app
 
-debug:   CFLAGS += -g3
-debug: efti
+dbg:   CFLAGS += -g3
+dbg: app
 
-efti: buildrepo $(OBJS)
-	$(CC) $(OBJS) $(LDFLAGS) -o efti
+app: $(OBJDIR)/efti
+
+$(OBJDIR)/efti: buildrepo $(OBJS)
+	$(CC) $(OBJS) $(LDFLAGS) -o $(OBJDIR)/efti
 
 $(OBJDIR)/%.o: %.c
 	$(CC) $(CFLAGS) $(INCLUDE) $(CPPFLAGS) -c -o $@ $<

@@ -24,6 +24,7 @@ typedef struct {
 	float impurity_weight;
 	int use_impurity_topo_mut;
 	int use_impurity_weight_mut;
+    int ensemble_size;
 }Efti_Conf_t;
 
 int efti_load_instance(const int32_t* instance, uint_fast16_t category);
@@ -32,5 +33,6 @@ void efti_reset(const Efti_Conf_t *conf, T_Dataset* ds);
 tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt, uint32_t* dt_nonleaves_cnt, float* t_hb, unsigned int *seed);
 void efti_close();
 float efti_eval(tree_node* dt);
+float ensemble_eval(tree_node* dt[], int ensemble_size);
 
 #endif

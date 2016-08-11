@@ -519,6 +519,48 @@ void find_node_distribution(tree_node* dt, volatile uint32_t* rxBuf)
 	}
 }
 
+float ensemble_eval(tree_node* dt[], int ensemble_size) {
+	uint32_t hits = 0;
+	unsigned i, j;
+    uint32_t vote[categ_max+1];
+
+    for (i = 0 ; i < inst_cnt; i++)
+	{
+        for (j = 1; j <= categ_max; j++)
+        {
+            vote[j] = 0;
+        }
+
+        for (j = 0 ; j < ensemble_size; j++)
+        {
+            uint32_t node;
+
+            node = find_dt_leaf_for_inst(dt[j], instances[i]);
+
+            vote[leaves[node-1]->cls]++;
+        }
+
+        uint32_t max_vote = 1;
+
+        for (j = 2; j <= categ_max; j++)
+        {
+            if (vote[j] > vote[max_vote]) {
+                max_vote = j;
+            }
+        }
+
+		uint32_t categ = categories[i];
+
+		if (categ == max_vote)
+		{
+			hits++;
+		}
+    }
+
+    return ((float) hits)/inst_cnt;
+        
+}
+
 float dt_eval(tree_node* dt)
 {
 	uint32_t hits = 0;

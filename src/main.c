@@ -14,13 +14,13 @@
 #include <string.h>
 #include <unistd.h>
 #include <getopt.h>
+#include "crossvalid.h"
 
-#define EFTI_CROSSVALIDATION			1
-#define EFTI_CROSSVALIDATION_SINGLE		0
-#define EFTI_CROSSVALIDATION_ALL		1
-#define EFTI_CROSSVALIDATION_RUNS		5
-#define MAX_ITERATIONS 			1000000
-#define SEED					29
+#define CROSSVALIDS_NUM           5
+#define EFTI_CROSSVALIDATION_RUNS 5
+#define ENSEMBLE_SIZE_MAX         32
+#define MAX_ITERATIONS            10000
+#define SEED                      29
 
 Efti_Conf_t efti_config = {
 	MAX_ITERATIONS,	// max_iterations
@@ -34,292 +34,117 @@ Efti_Conf_t efti_config = {
 	0.2,   // complexity_weight;
 	0.2,   // impurity_weight;
     1,     // use_impurity_topo_mut;
-	0     // use_impurity_weight_mut;
+	0,     // use_impurity_weight_mut;
+    4      // ensemble_size
 };
 
-#if EFTI_CROSSVALIDATION_SINGLE == 1
-
-#define CROSSVALIDS_NUM	5
-#define DATASETS_NUM	1
-
-extern T_Dataset vow_dataset;
-
-T_Dataset*	datasets[DATASETS_NUM] = {
-	&vow_dataset,
-};
-#endif
-
-#if EFTI_CROSSVALIDATION_ALL == 1
-
-#define CROSSVALIDS_NUM	5
-#define DATASETS_NUM	35
-
-extern T_Dataset ausc_dataset;
-extern T_Dataset bc_dataset;
-extern T_Dataset bcw_dataset;
-extern T_Dataset ca_dataset;
-extern T_Dataset car_dataset;
-extern T_Dataset cmc_dataset;
-extern T_Dataset ctg_dataset;
-extern T_Dataset ger_dataset;
-extern T_Dataset gls_dataset;
-extern T_Dataset hep_dataset;
-extern T_Dataset hrts_dataset;
-extern T_Dataset ion_dataset;
-extern T_Dataset irs_dataset;
-extern T_Dataset jvow_dataset;
-extern T_Dataset liv_dataset;
-extern T_Dataset lym_dataset;
-extern T_Dataset page_dataset;
-extern T_Dataset pid_dataset;
-extern T_Dataset psd_dataset;
-extern T_Dataset sb_dataset;
-extern T_Dataset seg_dataset;
-extern T_Dataset sick_dataset;
-extern T_Dataset son_dataset;
-extern T_Dataset spect_dataset;
-extern T_Dataset spf_dataset;
-extern T_Dataset thy_dataset;
-extern T_Dataset ttt_dataset;
-extern T_Dataset veh_dataset;
-extern T_Dataset vote_dataset;
-extern T_Dataset vow_dataset;
-extern T_Dataset w21_dataset;
-extern T_Dataset w40_dataset;
-extern T_Dataset wfr_dataset;
-extern T_Dataset wine_dataset;
-extern T_Dataset zoo_dataset;
-
-T_Dataset*	datasets[DATASETS_NUM] = {
-	&ausc_dataset,
-	&bc_dataset,
-	&bcw_dataset,
-	&ca_dataset,
-	&car_dataset,
-	&cmc_dataset,
-	&ctg_dataset,
-	&ger_dataset,
-	&gls_dataset,
-	&hep_dataset,
-	&hrts_dataset,
-	&ion_dataset,
-	&irs_dataset,
-	&jvow_dataset,
-	&liv_dataset,
-	&lym_dataset,
-	&page_dataset,
-	&pid_dataset,
-	&psd_dataset,
-	&sb_dataset,
-	&seg_dataset,
-	&sick_dataset,
-	&son_dataset,
-	&spect_dataset,
-	&spf_dataset,
-	&thy_dataset,
-	&ttt_dataset,
-	&veh_dataset,
-	&vote_dataset,
-	&vow_dataset,
-	&w21_dataset,
-	&w40_dataset,
-	&wfr_dataset,
-	&wine_dataset,
-	&zoo_dataset
-};
-
-//#define CROSSVALIDS_NUM	5
-//#define DATASETS_NUM	22
-//
-//extern T_Dataset ausc_dataset;
-//extern T_Dataset ca_dataset;
-//extern T_Dataset car_dataset;
-//extern T_Dataset cmc_dataset;
-//extern T_Dataset ctg_dataset;
-//extern T_Dataset ger_dataset;
-//extern T_Dataset jvow_dataset;
-//extern T_Dataset page_dataset;
-//extern T_Dataset pid_dataset;
-//extern T_Dataset psd_dataset;
-//extern T_Dataset sb_dataset;
-//extern T_Dataset seg_dataset;
-//extern T_Dataset sick_dataset;
-//extern T_Dataset spect_dataset;
-//extern T_Dataset spf_dataset;
-//extern T_Dataset thy_dataset;
-//extern T_Dataset veh_dataset;
-//extern T_Dataset vote_dataset;
-//extern T_Dataset vow_dataset;
-//extern T_Dataset w21_dataset;
-//extern T_Dataset wfr_dataset;
-//extern T_Dataset wine_dataset;
-//
-//T_Dataset*	datasets[DATASETS_NUM] = {
-//	&ausc_dataset,
-//	&ca_dataset,
-//	&car_dataset,
-//	&cmc_dataset,
-//	&ctg_dataset,
-//	&ger_dataset,
-//	&jvow_dataset,
-//	&page_dataset,
-//	&pid_dataset,
-//	&psd_dataset,
-//	&sb_dataset,
-//	&seg_dataset,
-//	&sick_dataset,
-//	&spect_dataset,
-//	&spf_dataset,
-//	&thy_dataset,
-//	&veh_dataset,
-//	&vote_dataset,
-//	&vow_dataset,
-//	&w21_dataset,
-//	&wfr_dataset,
-//	&wine_dataset
-//};
-#endif
-
-#if CROSSVALIDS_NUM == 1
-	int rnd_perm_inst[NUM_INST_MAX];
-#else
-	int rnd_perm_inst[NUM_INST_MAX / (CROSSVALIDS_NUM - 1)*CROSSVALIDS_NUM];
-#endif
-
-unsigned int seed;
-
-//#include "xil_exception.h"
-//volatile u32 DFSR;
-//
-//void MyDataAbortHandler()
-//{
-//	DFSR = mfcp(XREG_CP15_DATA_FAULT_STATUS);
-//
-//}
-
-void rnd_perm(int randNos[], int size)
-{
-    int oneRandno;
-    int haveRand[size];
-    int i;
-
-    memset(haveRand, 0, size*sizeof(int));
-
-    for (i = 0 ; i < size; i++)
+int load_dataset_to_efti(T_Dataset* ds, int* perm, int start, int end, int ex_start, int ex_end){
+    int j;
+    int total_cnt = 0;
+    
+    for (j = start; j < end ; j++)
     {
-		do
-		{
-			oneRandno = rand_r(&seed) % size;
-		} while (haveRand[oneRandno] == 1);
-		haveRand[oneRandno] = 1;
-		randNos[i] = oneRandno;
+        if ((j < ex_start) || (j >= ex_end))
+        {
+            efti_load_instance(&ds->instances[ds->attr_cnt*perm[j]],
+                               ds->classes[perm[j]]);
+            total_cnt++;
+        }
     }
-    return;
+    return total_cnt;
 }
 
 int crossvalidation()
 {
-	uint32_t i, j, k, n;
-	tree_node* dt;
+	uint32_t i, j, k, n, e;
+	tree_node* dt[ENSEMBLE_SIZE_MAX];
 	float fitness;
 	float accuracy;
 	uint32_t leaves;
 	uint32_t nonleaves;
 	float t_hb;
+    int train_num;
+    Cv_Status_T* cv_conf;
 
 //	Xil_ExceptionRegisterHandler(XIL_EXCEPTION_ID_DATA_ABORT_INT,
 //					(Xil_ExceptionHandler)MyDataAbortHandler,
 //					NULL);
 
 
-	seed = SEED;
-
 	efti_init();
 
-#if (EFTI_CROSSVALIDATION == 1)
 	efti_printf("$efti_config:max_iterations=%d,topology_mutation_rate=%e,"
-			"weights_mutation_rate=%e,search_probability=%e,search_probability_raise_due_to_stagnation_step=%e,"
-			"weight_mutation_rate_raise_due_to_stagnation_step=%e,return_to_best_prob_iteration_increment=%e,"
-			"complexity_weight=%e,impurity_weight=%e,use_impurity_topo_mut=%d,use_impurity_weight_mut=%d,seed=%d\n",
-			efti_config.max_iterations,
-			efti_config.topology_mutation_rate,
-			efti_config.weights_mutation_rate,
-			efti_config.search_probability,
-			efti_config.search_probability_raise_due_to_stagnation_step,
-			efti_config.weight_mutation_rate_raise_due_to_stagnation_step,
-			efti_config.return_to_best_prob_iteration_increment,
-			efti_config.complexity_weight,
-			efti_config.impurity_weight,
-			efti_config.use_impurity_topo_mut,
-			efti_config.use_impurity_weight_mut,
-			SEED
-			);
+                "weights_mutation_rate=%e,search_probability=%e,search_probability_raise_due_to_stagnation_step=%e,"
+                "weight_mutation_rate_raise_due_to_stagnation_step=%e,return_to_best_prob_iteration_increment=%e,"
+                "complexity_weight=%e,impurity_weight=%e,use_impurity_topo_mut=%d,use_impurity_weight_mut=%d,"
+                "ensemble_size=%d,seed=%d\n",
+                efti_config.max_iterations,
+                efti_config.topology_mutation_rate,
+                efti_config.weights_mutation_rate,
+                efti_config.search_probability,
+                efti_config.search_probability_raise_due_to_stagnation_step,
+                efti_config.weight_mutation_rate_raise_due_to_stagnation_step,
+                efti_config.return_to_best_prob_iteration_increment,
+                efti_config.complexity_weight,
+                efti_config.impurity_weight,
+                efti_config.use_impurity_topo_mut,
+                efti_config.use_impurity_weight_mut,
+                efti_config.ensemble_size,
+                SEED
+                );
 
-	for (i = 0; i < DATASETS_NUM; i++)
+    cv_conf = crossvalid_init(efti_config.ensemble_size, SEED, CROSSVALIDS_NUM, EFTI_CROSSVALIDATION_RUNS);
+    
+	for (i = 0; i < cv_conf->datasets_num; i++)
 	{
 		for (n=0; n < EFTI_CROSSVALIDATION_RUNS; n++)
 		{
 
-			efti_printf("$dataset:name=\"%s\",inst_cnt=%d,attr_cnt=%d,categ_max=%d,seed=%d\n", datasets[i]->name, datasets[i]->inst_cnt, datasets[i]->attr_cnt, datasets[i]->categ_max,seed);
-
-			rnd_perm(rnd_perm_inst, datasets[i]->inst_cnt);
-
-	#if CROSSVALIDS_NUM == 1
-			uint32_t crossvalid_chunk = 0;
-	#else
-			uint32_t crossvalid_chunk = (datasets[i]->inst_cnt + CROSSVALIDS_NUM - 1) / CROSSVALIDS_NUM;
-	#endif
-
-			for (k = 0; k < CROSSVALIDS_NUM; k++)
-			{
-				uint32_t train_inst_cnt = 0;
-				uint32_t test_inst_cnt = 0;
-
-				efti_reset(&efti_config, datasets[i]);
-
-				for (j = 0; j < datasets[i]->inst_cnt; j++)
-				{
-					if ((j < k*crossvalid_chunk) || (j >= (k+1)*crossvalid_chunk))
-					{
-						train_inst_cnt++;
-						efti_load_instance(&datasets[i]->instances[datasets[i]->attr_cnt*rnd_perm_inst[j]], datasets[i]->classes[rnd_perm_inst[j]]);
-					}
+            for (k = 0; k < CROSSVALIDS_NUM; k++)
+            {
+                for (e = 0; e < efti_config.ensemble_size; e++)
+                {
+                    cv_conf = crossvalid_next_conf();
+                
+                    efti_reset(&efti_config, cv_conf->dataset);
+                    train_num = load_dataset_to_efti(cv_conf->dataset, cv_conf->perm,
+                                         cv_conf->chunk_start, cv_conf->chunk_end,
+                                         cv_conf->fold_start, cv_conf->fold_start + cv_conf->fold_chunk_size);
+                    dt[e] = efti(&fitness, &leaves, &nonleaves, &t_hb, &cv_conf->seed);
 				}
-
-				dt = efti(&fitness, &leaves, &nonleaves, &t_hb, &seed);
 
 	#if EFTI_PROFILING == 0
 
-				uint32_t end_inst = (k+1)*crossvalid_chunk > datasets[i]->inst_cnt ? datasets[i]->inst_cnt : (k+1)*crossvalid_chunk;
-
-				for (j = k*crossvalid_chunk; j < end_inst; j++)
-				{
-					test_inst_cnt++;
-					efti_load_instance(&datasets[i]->instances[datasets[i]->attr_cnt*rnd_perm_inst[j]], datasets[i]->classes[rnd_perm_inst[j]]);
-				}
-
-				accuracy = efti_eval(dt);
-
-				efti_printf("$cv_pc_run:dataset=\"%s\",run=%d,id=%d,train_cnt=%d,test_cnt=%d,fitness=%f,accuracy=%f,leaves=%d,nonleaves=%d,time=%f\n",
-						datasets[i]->name,
-						n,
-						k,
-						train_inst_cnt,
-						test_inst_cnt,
-						fitness,
-						accuracy,
-						leaves,
-						nonleaves,
-						t_hb
-						);
+                load_dataset_to_efti(cv_conf->dataset, cv_conf->perm,
+                                     cv_conf->fold_start, cv_conf->fold_start + cv_conf->fold_chunk_size,
+                                     0, 0);
+				accuracy =  ensemble_eval(dt, efti_config.ensemble_size);
+				efti_printf("$cv_pc_run:dataset=\"%s\",run=%d,id=%d,train_range=(%d,%d),"
+                            "train_cnt=%d,test_range=(%d,%d),test_cnt=%d,fitness=%f,accuracy=%f,leaves=%d,nonleaves=%d,time=%f\n",
+                            cv_conf->dataset->name,
+                            n,
+                            k,
+                            cv_conf->chunk_start,
+                            cv_conf->chunk_end,
+                            cv_conf->chunk_size,
+                            cv_conf->fold_start,
+                            cv_conf->fold_start + cv_conf->fold_chunk_size,
+                            cv_conf->fold_chunk_size,
+                            fitness,
+                            accuracy,
+                            leaves,
+                            nonleaves,
+                            t_hb
+                    );
 	#endif
 
-				efti_reset(&efti_config, datasets[i]);
+                for (e = 0; e < efti_config.ensemble_size; e++)
+                {
+                    tree_delete_node(dt[e]);
+                }
 			}
 		}
 	}
-
-#endif
 
 	efti_close();
 
@@ -351,6 +176,7 @@ int main(int argc, char *argv[]) {
 		{"impurity_w",  optional_argument, 0,  'i' },
 		{"impurity_topomut",  optional_argument, 0,  'a' },
 		{"impurity_weightmut",  optional_argument, 0,  'b' },
+        {"ensemble_size",  optional_argument, 0,  'e' },
         {0,           0,                 0,  0   }
     };
 
@@ -358,32 +184,34 @@ int main(int argc, char *argv[]) {
     while ((opt = getopt_long(argc, argv,"m::t::w::s::x::y::z::r::o::i::a::b::",
                    long_options, &long_index )) != -1) {
         switch (opt) {
-             case 'm' : efti_config.max_iterations = atoi(optarg);
-                 break;
-             case 't' : efti_config.topology_mutation_rate = atof(optarg);
-                 break;
-             case 'w' : efti_config.weights_mutation_rate = atof(optarg);
-                 break;
-             case 's' : efti_config.search_probability = atof(optarg);
-                 break;
-             case 'x' : efti_config.search_probability_raise_due_to_stagnation_step = atof(optarg);
-                 break;
-             case 'y' : efti_config.topo_mutation_rate_raise_due_to_stagnation_step = atof(optarg);
-                 break;
-             case 'z' : efti_config.weight_mutation_rate_raise_due_to_stagnation_step = atof(optarg);
-                 break;
-             case 'r' : efti_config.return_to_best_prob_iteration_increment = atof(optarg);
-                 break;
-             case 'o' : efti_config.complexity_weight = atof(optarg);
-                 break;
-             case 'i' : efti_config.impurity_weight = atof(optarg);
-                 break;
-             case 'a' : efti_config.use_impurity_topo_mut = atof(optarg);
-                 break;
-             case 'b' : efti_config.use_impurity_weight_mut = atof(optarg);
-                 break;
-             default: print_usage();
-                 exit(EXIT_FAILURE);
+        case 'm' : efti_config.max_iterations = atoi(optarg);
+            break;
+        case 't' : efti_config.topology_mutation_rate = atof(optarg);
+            break;
+        case 'w' : efti_config.weights_mutation_rate = atof(optarg);
+            break;
+        case 's' : efti_config.search_probability = atof(optarg);
+            break;
+        case 'x' : efti_config.search_probability_raise_due_to_stagnation_step = atof(optarg);
+            break;
+        case 'y' : efti_config.topo_mutation_rate_raise_due_to_stagnation_step = atof(optarg);
+            break;
+        case 'z' : efti_config.weight_mutation_rate_raise_due_to_stagnation_step = atof(optarg);
+            break;
+        case 'r' : efti_config.return_to_best_prob_iteration_increment = atof(optarg);
+            break;
+        case 'o' : efti_config.complexity_weight = atof(optarg);
+            break;
+        case 'i' : efti_config.impurity_weight = atof(optarg);
+            break;
+        case 'a' : efti_config.use_impurity_topo_mut = atof(optarg);
+            break;
+        case 'b' : efti_config.use_impurity_weight_mut = atof(optarg);
+            break;
+        case 'e' : efti_config.ensemble_size = atoi(optarg);
+            break;
+        default: print_usage();
+            exit(EXIT_FAILURE);
         }
     }
 
