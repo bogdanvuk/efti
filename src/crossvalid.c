@@ -13,10 +13,10 @@
 #define CROSSVALIDS_NUM	5
 #define DATASETS_NUM	1
 
-extern T_Dataset vow_dataset;
+extern T_Dataset w40_dataset;
 
 T_Dataset*	datasets[DATASETS_NUM] = {
-	&vow_dataset,
+	&w40_dataset,
 };
 #endif
 

@@ -9,8 +9,8 @@
 #define __CROSSVALID_H_
 
 #define EFTI_CROSSVALIDATION		0
-#define EFTI_CROSSVALIDATION_SINGLE	0
-#define EFTI_CROSSVALIDATION_ALL	1
+#define EFTI_CROSSVALIDATION_SINGLE	1
+#define EFTI_CROSSVALIDATION_ALL	0
 
 typedef struct{
     T_Dataset* dataset;

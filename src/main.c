@@ -17,9 +17,9 @@
 #include "crossvalid.h"
 
 #define CROSSVALIDS_NUM           5
-#define EFTI_CROSSVALIDATION_RUNS 5
+#define EFTI_CROSSVALIDATION_RUNS 1
 #define ENSEMBLE_SIZE_MAX         32
-#define MAX_ITERATIONS            10000
+#define MAX_ITERATIONS            100000
 #define SEED                      29
 
 Efti_Conf_t efti_config = {
@@ -35,7 +35,7 @@ Efti_Conf_t efti_config = {
 	0.2,   // impurity_weight;
     1,     // use_impurity_topo_mut;
 	0,     // use_impurity_weight_mut;
-    4      // ensemble_size
+    1      // ensemble_size
 };
 
 int load_dataset_to_efti(T_Dataset* ds, int* perm, int start, int end, int ex_start, int ex_end){
@@ -59,6 +59,8 @@ int crossvalidation()
 	uint32_t i, j, k, n, e;
 	tree_node* dt[ENSEMBLE_SIZE_MAX];
 	float fitness;
+    float avg_fit;
+    float avg_size;
 	float accuracy;
 	uint32_t leaves;
 	uint32_t nonleaves;
@@ -102,6 +104,8 @@ int crossvalidation()
 
             for (k = 0; k < CROSSVALIDS_NUM; k++)
             {
+                avg_fit = 0;
+                avg_size = 0;
                 for (e = 0; e < efti_config.ensemble_size; e++)
                 {
                     cv_conf = crossvalid_next_conf();
@@ -111,6 +115,8 @@ int crossvalidation()
                                          cv_conf->chunk_start, cv_conf->chunk_end,
                                          cv_conf->fold_start, cv_conf->fold_start + cv_conf->fold_chunk_size);
                     dt[e] = efti(&fitness, &leaves, &nonleaves, &t_hb, &cv_conf->seed);
+                    avg_fit += fitness;
+                    avg_size += nonleaves;
 				}
 
 	#if EFTI_PROFILING == 0
@@ -120,7 +126,8 @@ int crossvalidation()
                                      0, 0);
 				accuracy =  ensemble_eval(dt, efti_config.ensemble_size);
 				efti_printf("$cv_pc_run:dataset=\"%s\",run=%d,id=%d,train_range=(%d,%d),"
-                            "train_cnt=%d,test_range=(%d,%d),test_cnt=%d,fitness=%f,accuracy=%f,leaves=%d,nonleaves=%d,time=%f\n",
+                            "train_cnt=%d,test_range=(%d,%d),test_cnt=%d,fitness=%f,accuracy=%f,"
+                            "leaves=%d,nonleaves=%f,time=%f,ensemble_size=%d\n",
                             cv_conf->dataset->name,
                             n,
                             k,
@@ -130,11 +137,12 @@ int crossvalidation()
                             cv_conf->fold_start,
                             cv_conf->fold_start + cv_conf->fold_chunk_size,
                             cv_conf->fold_chunk_size,
-                            fitness,
+                            avg_fit/efti_config.ensemble_size,
                             accuracy,
                             leaves,
-                            nonleaves,
-                            t_hb
+                            avg_size/efti_config.ensemble_size,
+                            t_hb,
+                            efti_config.ensemble_size
                     );
 	#endif
 
