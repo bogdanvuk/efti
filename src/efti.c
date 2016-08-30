@@ -390,25 +390,12 @@ int _extract_hierarcy(tree_node* dt, uint32_t level)
 
 	if (dt->left == NULL)
 	{
-		int i;
-		for (i = 0; i < leaves_cnt; i++) {
-			if (leaves[i] == dt) {
-				leaves[i] = dt;
-			}
-		}
 		leaves[leaves_cnt] = dt;
 		leaves_cnt++;
 		dt->id = leaves_cnt;
 	}
 	else
 	{
-		int i;
-		for (i = 0; i < nonleaves_cnt; i++) {
-			if (nonleaves[i] == dt) {
-				nonleaves[i] = dt;
-			}
-		}
-
 		dt->id = node_hierarchy_cnt[level];
 
 		node_hierarchy[level][node_hierarchy_cnt[level]] = dt;
@@ -438,7 +425,7 @@ int extract_hierarcy(tree_node* dt)
 	return _extract_hierarcy(dt, 0);
 }
 
-uint32_t find_dt_leaf_for_inst(tree_node* dt, int32_t attributes[])
+tree_node* find_dt_leaf_for_inst(tree_node* dt, int32_t attributes[])
 {
     tree_node* cur_node;
     int16_t res_scaled;
@@ -473,7 +460,7 @@ uint32_t find_dt_leaf_for_inst(tree_node* dt, int32_t attributes[])
 
 	}
 
-	return cur_node->id;
+	return cur_node;
 }
 
 #if EFTI_HW == 1
@@ -502,17 +489,16 @@ void find_node_distribution(tree_node* dt, volatile uint32_t* rxBuf)
 
 	for (i = 0 ; i < inst_cnt; i++)
 	{
-		uint32_t node;
+        uint32_t node;
 
 #if (EFTI_SW == 1)
 
-		node = find_dt_leaf_for_inst(dt, instances[i]);
-
+		node = find_dt_leaf_for_inst(dt, instances[i])->id;
 #if (EFTI_HW_SW_FITNESS == 1)
 		HbAssert(node == (*rxBuf++));
 #endif
 #else
-		node = (*rxBuf++);
+		node_id = (*rxBuf++);
 #endif
 		uint32_t categ = categories[i];
 		node_categories_distrib[node][categ]++;
@@ -533,11 +519,11 @@ float ensemble_eval(tree_node* dt[], int ensemble_size) {
 
         for (j = 0 ; j < ensemble_size; j++)
         {
-            uint32_t node;
+            tree_node* node;
 
             node = find_dt_leaf_for_inst(dt[j], instances[i]);
 
-            vote[leaves[node-1]->cls]++;
+            vote[node->cls]++;
         }
 
         uint32_t max_vote = 1;
@@ -583,7 +569,7 @@ float dt_eval(tree_node* dt)
 		uint32_t node;
 
 #if (EFTI_SW == 1)
-		node = find_dt_leaf_for_inst(dt, instances[i]);
+		node = find_dt_leaf_for_inst(dt, instances[i])->id;
 #if (EFTI_HW_SW_FITNESS == 1)
 		HbAssert(node == (*rxBuf++));
 #endif
@@ -817,7 +803,8 @@ void hw_apply_mutation(tree_node* mut_nodes[], uint32_t mut_attr[], uint32_t mut
 	}
 }
 
-tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt, uint32_t* dt_nonleaves_cnt, float* t_hb, unsigned int *seed)
+tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt,
+                uint32_t* dt_nonleaves_cnt, float* t_hb, unsigned int *seed)
 {
 	uint32_t returned_to_best_iter;
 

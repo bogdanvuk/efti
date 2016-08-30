@@ -12,19 +12,20 @@
 #define DT_USE_LOOP_UNFOLD			1
 
 typedef struct {
-	unsigned max_iterations;
-	float topology_mutation_rate;
-	float weights_mutation_rate;
-	float search_probability;
-	float search_probability_raise_due_to_stagnation_step;
-	float topo_mutation_rate_raise_due_to_stagnation_step;
-	float weight_mutation_rate_raise_due_to_stagnation_step;
-	float return_to_best_prob_iteration_increment;
-	float complexity_weight;
-	float impurity_weight;
-	int use_impurity_topo_mut;
-	int use_impurity_weight_mut;
+    unsigned max_iterations;
+    float topology_mutation_rate;
+    float weights_mutation_rate;
+    float search_probability;
+    float search_probability_raise_due_to_stagnation_step;
+    float topo_mutation_rate_raise_due_to_stagnation_step;
+    float weight_mutation_rate_raise_due_to_stagnation_step;
+    float return_to_best_prob_iteration_increment;
+    float complexity_weight;
+    float impurity_weight;
+    int use_impurity_topo_mut;
+    int use_impurity_weight_mut;
     int ensemble_size;
+    char* dataset_selection;
 }Efti_Conf_t;
 
 int efti_load_instance(const int32_t* instance, uint_fast16_t category);
