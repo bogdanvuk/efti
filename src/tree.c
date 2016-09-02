@@ -25,7 +25,7 @@ void tree_init()
 
 tree_node* node_alloc()
 {
-	return malloc(sizeof(tree_node));
+    return (tree_node*) malloc(sizeof(tree_node));
 //	while (node_pool_alloc[node_pool_next_free])
 //	{
 //		node_pool_next_free++;

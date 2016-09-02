@@ -2,7 +2,8 @@ from efti_intf import spawn_group, spawn
 
 def pp_avg(avg):
     avg_round = {}
-    for d,a in avg.items():
+    for d in sorted(avg):
+        a = avg[d]
         avg_round[d] = ['{:.2f}'.format(val) for val in a]
 
     return avg_round
@@ -23,7 +24,7 @@ class EftiCmd:
         res = {'fit': kwargs['fitness'], 'acc': kwargs['accuracy'], 'size': kwargs['nonleaves']}
         self.res[dataset].append(res)
 
-        print('Ensembles: {}, Avg: {}'.format(kwargs['ensemble_size'], pp_avg(self.average())))
+        # print('Ensembles: {}, Avg: {}'.format(kwargs['ensemble_size'], pp_avg(self.average())))
         
     def average(self):
         avg = {}
@@ -47,11 +48,12 @@ def avg_fit(path, params, parallel=True):
         for i in range(len(params)):
             cmd[i] = spawn(cmd[i], path=path, params=params[i])
 
-    print('*'*80)
-    print('*'*80)
-    for c,p in zip(cmd, params):
-        print('Ensembles: {}, Avg: {}'.format(p['ensemble_size'], pp_avg(c.average())))
-    print('*'*80)
+    return cmd
+    # print('*'*80)
+    # print('*'*80)
+    # for c,p in zip(cmd, params):
+    #     print('Ensembles: {}, Avg: {}'.format(p['ensemble_size'], pp_avg(c.average())))
+    # print('*'*80)
 
 if __name__ == "__main__":
 

@@ -17,7 +17,7 @@
 #include "crossvalid.h"
 
 #define CROSSVALIDS_NUM           5
-#define EFTI_CROSSVALIDATION_RUNS 1
+#define EFTI_CROSSVALIDATION_RUNS 5
 #define ENSEMBLE_SIZE_MAX         32
 #define MAX_ITERATIONS            100000
 #define SEED                      29
@@ -32,8 +32,8 @@ Efti_Conf_t efti_config = {
     0.00004,        // weight_mutation_rate_raise_due_to_stagnation_step;
     5e-7,           // return_to_best_prob_iteration_increment;
     0.2,            // complexity_weight;
-    0.2,            // impurity_weight;
-    1,              // use_impurity_topo_mut;
+    0,              // impurity_weight;
+    0,              // use_impurity_topo_mut;
     0,              // use_impurity_weight_mut;
     1,              // ensemble_size
     NULL            // dataset_list

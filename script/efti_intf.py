@@ -23,7 +23,8 @@ def cmd_decode(line):
 def spawn(cmd, path='./efti', params={}):
     param_line = ['--{}={}'.format(k,v) for k,v in params.items()]
     cmd_line = path + ' ' + ' '.join(param_line)
-    p = pexpect.spawnu(cmd_line, echo=True, timeout=300)
+    print('Running EFTI: {}', cmd_line)
+    p = pexpect.spawnu(cmd_line, echo=True, timeout=3000)
     
     try:
         while (1):

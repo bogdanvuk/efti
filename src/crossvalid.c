@@ -23,7 +23,7 @@ T_Dataset*	datasets[DATASETS_NUM] = {
 #if EFTI_CROSSVALIDATION_ALL == 1
 
 #define CROSSVALIDS_NUM	5
-#define DATASETS_NUM	35
+#define DATASETS_NUM	36
 
 extern T_Dataset ausc_dataset;
 extern T_Dataset bc_dataset;
@@ -54,6 +54,7 @@ extern T_Dataset thy_dataset;
 extern T_Dataset ttt_dataset;
 extern T_Dataset veh_dataset;
 extern T_Dataset vote_dataset;
+extern T_Dataset vene_dataset;
 extern T_Dataset vow_dataset;
 extern T_Dataset w21_dataset;
 extern T_Dataset w40_dataset;
@@ -90,6 +91,7 @@ T_Dataset*	datasets[DATASETS_NUM] = {
     &thy_dataset,
     &ttt_dataset,
     &veh_dataset,
+    &vene_dataset,
     &vote_dataset,
     &vow_dataset,
     &w21_dataset,
@@ -171,30 +173,34 @@ Cv_Status_T* crossvalid_next_dataset()
     cv_stat.cur_cs_run = 0;
     cv_stat.cur_dataset++;
 
-    if (cv_stat.cur_dataset == DATASETS_NUM)
+    if (cv_stat.dselect == NULL)
     {
-        return NULL;
-    }
-
-    for (i = 0; i < DATASETS_NUM; i++)
-    {
-        if (strcmp(cv_stat.dselect, datasets[i]->name) == 0)
+        cv_stat.dataset      = datasets[cv_stat.cur_dataset];
+    } else {
+        if (cv_stat.cur_dataset == DATASETS_NUM)
         {
-            break;
+            return NULL;
+        }
+
+        for (i = 0; i < DATASETS_NUM; i++)
+        {
+            if (strcmp(cv_stat.dselect, datasets[i]->name) == 0)
+            {
+                break;
+            }
+        }
+
+        cv_stat.dselect = strtok_r(NULL, " ,", &saveptr);
+
+        if (i == DATASETS_NUM)
+        {
+            return NULL;
+        }
+        else
+        {
+            cv_stat.dataset = datasets[i];
         }
     }
-
-    cv_stat.dselect = strtok_r(NULL, " ,", &saveptr); 
-
-    if (i == DATASETS_NUM)
-    {
-        return NULL;
-    }
-    else
-    {
-        cv_stat.dataset = datasets[i];
-    }
-
 
     efti_printf("$dataset:name=\"%s\",inst_cnt=%d,attr_cnt=%d,categ_max=%d,seed=%d\n", cv_stat.dataset->name, cv_stat.dataset->inst_cnt, cv_stat.dataset->attr_cnt, cv_stat.dataset->categ_max, cv_stat.seed);
     
@@ -255,14 +261,14 @@ Cv_Status_T* crossvalid_next_ensemble()
         cv_stat.chunk_start += cv_stat.fold_chunk_size;
     }
 
-    if (cv_stat.chunk_start + cv_stat.chunk_size > cv_stat.fold_start) {
-        cv_stat.chunk_end += cv_stat.fold_chunk_size;
-    }
-
     if (cv_stat.cur_ensemble == (cv_stat.cur_ensemble_size - 1))
     {
-        cv_stat.chunk_size -= (cv_stat.chunk_size*cv_stat.cur_ensemble_size - cv_stat.train_set_size);
         cv_stat.chunk_end -= (cv_stat.chunk_size*cv_stat.cur_ensemble_size - cv_stat.train_set_size);
+        cv_stat.chunk_size -= (cv_stat.chunk_size*cv_stat.cur_ensemble_size - cv_stat.train_set_size);
+    }
+
+    if (cv_stat.chunk_start + cv_stat.chunk_size > cv_stat.fold_start) {
+        cv_stat.chunk_end += cv_stat.fold_chunk_size;
     }
 
     return &cv_stat;
