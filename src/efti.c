@@ -873,11 +873,6 @@ tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt,
         }
 
 #endif
-
-        if (current_iter == 3127) {
-            efti_printf("Current iteration: %d\n", current_iter);
-//			extract_hierarcy(dt_cur);
-        }
         topology_mutated = 0;
 
         topo_mutation_probability = efti_conf->topology_mutation_rate * leaves_cnt;

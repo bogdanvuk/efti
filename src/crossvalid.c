@@ -23,15 +23,21 @@ T_Dataset*	datasets[DATASETS_NUM] = {
 #if EFTI_CROSSVALIDATION_ALL == 1
 
 #define CROSSVALIDS_NUM	5
-#define DATASETS_NUM	36
+#define DATASETS_NUM	50
 
+extern T_Dataset adult_dataset;
 extern T_Dataset ausc_dataset;
+extern T_Dataset bank_dataset;
 extern T_Dataset bc_dataset;
+extern T_Dataset bch_dataset;
 extern T_Dataset bcw_dataset;
 extern T_Dataset ca_dataset;
 extern T_Dataset car_dataset;
 extern T_Dataset cmc_dataset;
 extern T_Dataset ctg_dataset;
+extern T_Dataset cvf_dataset;
+extern T_Dataset eb_dataset;
+extern T_Dataset eye_dataset;
 extern T_Dataset ger_dataset;
 extern T_Dataset gls_dataset;
 extern T_Dataset hep_dataset;
@@ -39,13 +45,20 @@ extern T_Dataset hrts_dataset;
 extern T_Dataset ion_dataset;
 extern T_Dataset irs_dataset;
 extern T_Dataset jvow_dataset;
+extern T_Dataset krkopt_dataset;
+extern T_Dataset letter_dataset;
 extern T_Dataset liv_dataset;
 extern T_Dataset lym_dataset;
+extern T_Dataset magic_dataset;
+extern T_Dataset mushroom_dataset;
+extern T_Dataset nurse_dataset;
 extern T_Dataset page_dataset;
+extern T_Dataset pen_dataset;
 extern T_Dataset pid_dataset;
 extern T_Dataset psd_dataset;
 extern T_Dataset sb_dataset;
 extern T_Dataset seg_dataset;
+extern T_Dataset shuttle_dataset;
 extern T_Dataset sick_dataset;
 extern T_Dataset son_dataset;
 extern T_Dataset spect_dataset;
@@ -53,52 +66,67 @@ extern T_Dataset spf_dataset;
 extern T_Dataset thy_dataset;
 extern T_Dataset ttt_dataset;
 extern T_Dataset veh_dataset;
-extern T_Dataset vote_dataset;
 extern T_Dataset vene_dataset;
+extern T_Dataset vote_dataset;
 extern T_Dataset vow_dataset;
 extern T_Dataset w21_dataset;
 extern T_Dataset w40_dataset;
 extern T_Dataset wfr_dataset;
+extern T_Dataset wilt_dataset;
 extern T_Dataset wine_dataset;
 extern T_Dataset zoo_dataset;
 
 T_Dataset*	datasets[DATASETS_NUM] = {
-    &ausc_dataset,
-    &bc_dataset,
-    &bcw_dataset,
-    &ca_dataset,
-    &car_dataset,
-    &cmc_dataset,
-    &ctg_dataset,
-    &ger_dataset,
-    &gls_dataset,
-    &hep_dataset,
-    &hrts_dataset,
-    &ion_dataset,
-    &irs_dataset,
-    &jvow_dataset,
-    &liv_dataset,
-    &lym_dataset,
-    &page_dataset,
-    &pid_dataset,
-    &psd_dataset,
-    &sb_dataset,
-    &seg_dataset,
-    &sick_dataset,
-    &son_dataset,
-    &spect_dataset,
-    &spf_dataset,
-    &thy_dataset,
-    &ttt_dataset,
-    &veh_dataset,
-    &vene_dataset,
-    &vote_dataset,
-    &vow_dataset,
-    &w21_dataset,
-    &w40_dataset,
-    &wfr_dataset,
-    &wine_dataset,
-    &zoo_dataset
+  &adult_dataset,
+  &ausc_dataset,
+  &bank_dataset,
+  &bc_dataset,
+  &bch_dataset,
+  &bcw_dataset,
+  &ca_dataset,
+  &car_dataset,
+  &cmc_dataset,
+  &ctg_dataset,
+  &cvf_dataset,
+  &eb_dataset,
+  &eye_dataset,
+  &ger_dataset,
+  &gls_dataset,
+  &hep_dataset,
+  &hrts_dataset,
+  &ion_dataset,
+  &irs_dataset,
+  &jvow_dataset,
+  &krkopt_dataset,
+  &letter_dataset,
+  &liv_dataset,
+  &lym_dataset,
+  &magic_dataset,
+  &mushroom_dataset,
+  &nurse_dataset,
+  &page_dataset,
+  &pen_dataset,
+  &pid_dataset,
+  &psd_dataset,
+  &sb_dataset,
+  &seg_dataset,
+  &shuttle_dataset,
+  &sick_dataset,
+  &son_dataset,
+  &spect_dataset,
+  &spf_dataset,
+  &thy_dataset,
+  &ttt_dataset,
+  &veh_dataset,
+  &vene_dataset,
+  &vote_dataset,
+  &vow_dataset,
+  &w21_dataset,
+  &w40_dataset,
+  &wfr_dataset,
+  &wilt_dataset,
+  &wine_dataset,
+  &zoo_dataset
 };
 
 #endif
