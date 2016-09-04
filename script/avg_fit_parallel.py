@@ -1,4 +1,6 @@
-from efti_intf import spawn_group, spawn
+import pickle
+from efti_intf import EftiCmdBase, spawn_group, spawn
+import time
 
 def pp_avg(avg):
     avg_round = {}
@@ -8,24 +10,27 @@ def pp_avg(avg):
 
     return avg_round
 
-class EftiCmd:
+class EftiCmd(EftiCmdBase):
 
-    def __init__(self):
+    def __init__(self,fname):
         self.res = {}
-    
+        super().__init__(fname)
+
     def cmd_dataset(self, *args, **kwargs):
+        EftiCmdBase.__getattr__(self,'cmd_dataset')(*args, **kwargs)
         name = kwargs['name']
 
         if name not in self.res:
             self.res[name] = []
 
     def cmd_cv_pc_run(self, *args, **kwargs):
+        EftiCmdBase.__getattr__(self,'cmd_cv_pc_run')(*args, **kwargs)
         dataset = kwargs['dataset']
         res = {'fit': kwargs['fitness'], 'acc': kwargs['accuracy'], 'size': kwargs['nonleaves']}
         self.res[dataset].append(res)
-
+        print(kwargs)
         # print('Ensembles: {}, Avg: {}'.format(kwargs['ensemble_size'], pp_avg(self.average())))
-        
+
     def average(self):
         avg = {}
         for n,d in self.res.items():
@@ -36,12 +41,16 @@ class EftiCmd:
 
         return avg
 
-def avg_fit(path, params, parallel=True):
+def avg_fit(path, params, parallel=True, log=False):
     cmd = []
+    fname = None
     for i in range(len(params)):
-        cmd.append(EftiCmd())
+        if log:
+            fname = "avg_fit_log_w{}_{}.js".format(i, time.strftime("%Y%m%d_%H%M%S"))
+        cmd.append(EftiCmd(fname))
         #spawn(cmd[i], path=path, params=params[i])
 
+    pickle.dumps(cmd[0])
     if parallel:
         cmd = spawn_group(cmd, path=path, params=params)
     else:
