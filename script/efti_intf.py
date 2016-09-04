@@ -95,19 +95,41 @@ def spawn_worker(kwargs):
 
 def spawn_group(cmd, path='./efti', params=[]):
     kwargs = [{'cmd': c, 'path':path, 'params':p} for c,p in zip(cmd, params)]
-    # jobs = []
-    # for i in range(len(params)):
-    #     p = Process(target=spawn, kwargs=kwargs[i])
-    #     jobs.append(p)
-    #     p.start()
-
-    # for j in jobs:
-    #     j.join()
-        
     with Pool(len(params)) as p:
         ret = p.map(spawn_worker, kwargs)
 
     return ret
+
+def get_dsets_info(dsdir, regex):
+    for fn in os.listdir(dsdir):
+        fn = os.path.join(dsdir,fn)
+        if os.path.isfile(fn):
+            with open(fn) as f:
+                res = re.findall(regex, f.read())
+                if res:
+                    yield os.path.splitext(os.path.basename(fn))[0], res[0]
+
+def list_dsets_by_size(dsdir, constr):
+    dsets = [d for d,i in get_dsets_info(dsdir, r"#define INST_CNT (\d*)")
+             if constr(int(i))]
+
+    return dsets
+
+def efti_test(path, params, cmd_cls=EftiCmdBase, parallel=True, log=False):
+    cmd = []
+    fname = None
+    for i in range(len(params)):
+        if log:
+            fname = "efti_test_log_w{}_{}.js".format(i, time.strftime("%Y%m%d_%H%M%S"))
+        cmd.append(cmd_cls(fname))
+
+    if parallel:
+        cmd = spawn_group(cmd, path=path, params=params)
+    else:
+        for i in range(len(params)):
+            cmd[i] = spawn(cmd[i], path=path, params=params[i])
+
+    return cmd
 
 def serial(cmd):
     pass

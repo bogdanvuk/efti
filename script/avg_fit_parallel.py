@@ -41,29 +41,6 @@ class EftiCmd(EftiCmdBase):
 
         return avg
 
-def avg_fit(path, params, parallel=True, log=False):
-    cmd = []
-    fname = None
-    for i in range(len(params)):
-        if log:
-            fname = "avg_fit_log_w{}_{}.js".format(i, time.strftime("%Y%m%d_%H%M%S"))
-        cmd.append(EftiCmd(fname))
-        #spawn(cmd[i], path=path, params=params[i])
-
-    pickle.dumps(cmd[0])
-    if parallel:
-        cmd = spawn_group(cmd, path=path, params=params)
-    else:
-        for i in range(len(params)):
-            cmd[i] = spawn(cmd[i], path=path, params=params[i])
-
-    return cmd
-    # print('*'*80)
-    # print('*'*80)
-    # for c,p in zip(cmd, params):
-    #     print('Ensembles: {}, Avg: {}'.format(p['ensemble_size'], pp_avg(c.average())))
-    # print('*'*80)
-
 if __name__ == "__main__":
 
     max_iter = 10000
