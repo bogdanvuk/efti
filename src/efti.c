@@ -531,9 +531,9 @@ float ensemble_eval(tree_node* dt[], int ensemble_size) {
             vote[node->cls]++;
         }
 
-        uint32_t max_vote = 1;
+        uint32_t max_vote = rand_r(seedp) % categ_max + 1;
 
-        for (j = 2; j <= categ_max; j++)
+        for (j = 1; j <= categ_max; j++)
         {
             if (vote[j] > vote[max_vote]) {
                 max_vote = j;
@@ -1077,7 +1077,8 @@ tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt,
                 efti_printf("RB: i=%d\n\r", current_iter);
 #endif
             }
-            else if (topology_mutated && (rand_norm() < search_probability))
+            /* else if (topology_mutated && (rand_norm() < search_probability)) */
+            else if (rand_norm() < search_probability)
             {
 //#if ((EFTI_HW == 1) && (EFTI_SW == 0))
 //				hw_apply_mutation(mut_nodes, mut_attr, mut_bit, weights_mutation_cnt);

@@ -3,6 +3,9 @@ from multiprocessing import Pool, Process
 import pexpect
 import threading
 import json
+import os
+import time
+import logging
 
 class EftiCmdBase:
 
@@ -71,22 +74,35 @@ def cmd_decode(line):
         print("Error decoding the command!")
 
 
-def spawn(cmd, path='./efti', params={}):
-    param_line = ['--{}={}'.format(k,v) for k,v in params.items()]
-    cmd_line = path + ' ' + ' '.join(param_line)
-    print('Running EFTI: {}', cmd_line)
-    p = pexpect.spawnu(cmd_line, echo=True, timeout=3000)
+def spawn(cmd, path='./efti', params=[], name='w0'):
     with cmd:
-        try:
-            while (1):
-                p.expect('\n')
-                #print(p.before)
-                res_raw = cmd_decode(p.before + '\n')
-                if res_raw:
-                    if hasattr(cmd, 'cmd_' + res_raw['cmd']):
-                        getattr(cmd, 'cmd_' + res_raw['cmd'])(*res_raw['args'], **res_raw['kwargs'])
-        except pexpect.EOF:
-            pass
+        for t in params:
+            param_line = []
+            for k,v in t.items():
+                if v is not None:
+                    if len(k) == 1:
+                        param_line.append('-{} {}'.format(k,v))
+                    else:
+                        param_line.append('--{}={}'.format(k,v))
+                else:
+                    if len(k) == 1:
+                        param_line.append('-{}'.format(k))
+                    else:
+                        param_line.append('--{}'.format(k))
+
+            cmd_line = path + ' ' + ' '.join(param_line)
+            logging.info('{}: Running EFTI: {}'.format(name, cmd_line))
+            t = pexpect.spawnu(cmd_line, echo=True, timeout=3000)
+            try:
+                while (1):
+                    t.expect('\n')
+                    logging.info('{}: {}'.format(name, t.before))
+                    res_raw = cmd_decode(t.before + '\n')
+                    if res_raw:
+                        if hasattr(cmd, 'cmd_' + res_raw['cmd']):
+                            getattr(cmd, 'cmd_' + res_raw['cmd'])(*res_raw['args'], **res_raw['kwargs'])
+            except pexpect.EOF:
+                pass
 
     return cmd
 
@@ -94,9 +110,10 @@ def spawn_worker(kwargs):
     return spawn(**kwargs)
 
 def spawn_group(cmd, path='./efti', params=[]):
-    kwargs = [{'cmd': c, 'path':path, 'params':p} for c,p in zip(cmd, params)]
-    with Pool(len(params)) as p:
-        ret = p.map(spawn_worker, kwargs)
+    kwargs = [{'cmd': c, 'path':path, 'params':t, 'name':'w{}'.format(i)} for i, (c,t) in enumerate(zip(cmd, params))]
+    print(kwargs)
+    with Pool(len(params)) as t:
+        ret = t.map(spawn_worker, kwargs)
 
     return ret
 
@@ -115,19 +132,34 @@ def list_dsets_by_size(dsdir, constr):
 
     return dsets
 
-def efti_test(path, params, cmd_cls=EftiCmdBase, parallel=True, log=False):
+def efti_test(path, tests=[], cmd_cls=EftiCmdBase, threads=0):
     cmd = []
-    fname = None
-    for i in range(len(params)):
-        if log:
-            fname = "efti_test_log_w{}_{}.js".format(i, time.strftime("%Y%m%d_%H%M%S"))
-        cmd.append(cmd_cls(fname))
 
-    if parallel:
-        cmd = spawn_group(cmd, path=path, params=params)
+    logging.basicConfig(format='%(asctime)s %(message)s', filename='efti_test.log', filemode='w', level = logging.DEBUG)
+    logging.info('Starting EFTI test...')
+
+    for t in tests:
+        if 'log' in t:
+            logfn = t['log']
+        else:
+            logfn = None
+
+        cmd.append(cmd_cls(logfn))
+
+    if threads == 0:
+        for i,t in enumerate(tests):
+            cmd[i] = spawn(cmd[i], path=path, tests=t["conf"])
     else:
-        for i in range(len(params)):
-            cmd[i] = spawn(cmd[i], path=path, params=params[i])
+        logging.info('Using {} threads for {} tests'.format(threads, len(tests)))
+        param_set_start = 0
+        cmd_ret = []
+        for param_set_start in range(0, len(tests), threads):
+            logging.info("Starting tests {} to {}".format(param_set_start, param_set_start+threads-1))
+            param_set = [t['conf'] for t in tests[param_set_start:param_set_start+threads]]
+            cmd_set = cmd[param_set_start:param_set_start+threads]
+            cmd_ret.extend(spawn_group(cmd_set, path=path, params=param_set))
+
+        cmd = cmd_ret
 
     return cmd
 
