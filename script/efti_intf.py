@@ -34,6 +34,8 @@ class EftiCmdBase:
             del self.t
 
     def dump_res(self):
+        self.t = threading.Timer(10, self.dump_res)
+        self.t.start()
         with open(self.fname, 'w') as outfile:
             json.dump(self.res_raw, outfile, indent = 4)
 
@@ -111,7 +113,6 @@ def spawn_worker(kwargs):
 
 def spawn_group(cmd, path='./efti', params=[]):
     kwargs = [{'cmd': c, 'path':path, 'params':t, 'name':'w{}'.format(i)} for i, (c,t) in enumerate(zip(cmd, params))]
-    print(kwargs)
     with Pool(len(params)) as t:
         ret = t.map(spawn_worker, kwargs)
 
