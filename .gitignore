@@ -49,3 +49,6 @@ cscope*
 
 # Log
 *.log
+
+# Simulation results
+script/*.js 

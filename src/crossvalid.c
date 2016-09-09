@@ -23,7 +23,7 @@ T_Dataset*	datasets[DATASETS_NUM] = {
 #if EFTI_CROSSVALIDATION_ALL == 1
 
 #define CROSSVALIDS_NUM	5
-#define DATASETS_NUM	50
+#define DATASETS_NUM	51
 
 extern T_Dataset adult_dataset;
 extern T_Dataset ausc_dataset;
@@ -41,6 +41,7 @@ extern T_Dataset eye_dataset;
 extern T_Dataset ger_dataset;
 extern T_Dataset gls_dataset;
 extern T_Dataset hep_dataset;
+extern T_Dataset hrtc_dataset;
 extern T_Dataset hrts_dataset;
 extern T_Dataset ion_dataset;
 extern T_Dataset irs_dataset;
@@ -93,6 +94,7 @@ T_Dataset*	datasets[DATASETS_NUM] = {
   &ger_dataset,
   &gls_dataset,
   &hep_dataset,
+  &hrtc_dataset,
   &hrts_dataset,
   &ion_dataset,
   &irs_dataset,
