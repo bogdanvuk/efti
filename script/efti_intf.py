@@ -82,19 +82,19 @@ def spawn(cmd, path='./efti', params=[], name='w0'):
             param_line = []
             for k,v in t.items():
                 if v is not None:
-                    if len(k) == 1:
+                    if len(k) <= 2:
                         param_line.append('-{} {}'.format(k,v))
                     else:
                         param_line.append('--{}={}'.format(k,v))
                 else:
-                    if len(k) == 1:
+                    if len(k) <= 2:
                         param_line.append('-{}'.format(k))
                     else:
                         param_line.append('--{}'.format(k))
 
             cmd_line = path + ' ' + ' '.join(param_line)
             logging.info('{}: Running EFTI: {}'.format(name, cmd_line))
-            t = pexpect.spawnu(cmd_line, echo=True, timeout=3000)
+            t = pexpect.spawnu(cmd_line, echo=True, timeout=None)
             try:
                 while (1):
                     t.expect('\n')
