@@ -82,12 +82,12 @@ def spawn(cmd, path='./efti', params=[], name='w0'):
             param_line = []
             for k,v in t.items():
                 if v is not None:
-                    if len(k) == 1:
+                    if len(k) <= 2:
                         param_line.append('-{} {}'.format(k,v))
                     else:
                         param_line.append('--{}={}'.format(k,v))
                 else:
-                    if len(k) == 1:
+                    if len(k) <= 2:
                         param_line.append('-{}'.format(k))
                     else:
                         param_line.append('--{}'.format(k))
