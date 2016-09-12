@@ -94,7 +94,7 @@ def spawn(cmd, path='./efti', params=[], name='w0'):
 
             cmd_line = path + ' ' + ' '.join(param_line)
             logging.info('{}: Running EFTI: {}'.format(name, cmd_line))
-            t = pexpect.spawnu(cmd_line, echo=True, timeout=3000)
+            t = pexpect.spawnu(cmd_line, echo=True, timeout=None)
             try:
                 while (1):
                     t.expect('\n')

@@ -1,4 +1,4 @@
-LDFLAGS = -L/usr/lib -lgtest -lpthread
+LDFLAGS = 
 OBJDIR = rel
 
 CXXFLAGS = -DEFTI_SW=1 -DEFTI_HW=0
