@@ -726,7 +726,7 @@ float fitness_eval(tree_node* dt)
     oversize = (((float) leaves_cnt) - ((float) categ_max))/((float)categ_max);
     impurity = tot_impurity / leaves_cnt;
 
-    fitness = accuracy * (1 - efti_conf->complexity_weight*oversize) * (1 - efti_conf->impurity_weight*impurity);
+    fitness = accuracy * (1 - efti_conf->complexity_weight*oversize*oversize) * (1 - efti_conf->impurity_weight*impurity);
 
     return fitness;
 

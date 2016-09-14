@@ -1,4 +1,5 @@
 import sys
+import os
 import time
 
 from efti_intf import efti_test
@@ -28,10 +29,10 @@ tests_all = [{'dataset_selection': ','.join(ds)} for ds in test_partition]
 
 # tests_all.append({'dataset_selection': ','.join(files_all[(test_chunks-1)*chunk_size:])})
 
-def run_tests(tests, threads=0):
+def run_tests(tests, threads=0, res_dir='.'):
     params = []
     for i,t in enumerate(tests):
-        logfn = '{}_conf{}.js'.format(time.strftime("%Y%m%d_%H%M%S"), i)
+        logfn = os.path.join(res_dir, '{}_conf{}.js'.format(time.strftime("%Y%m%d_%H%M%S"), i))
         test_set = {'log': logfn, 'conf': []}
 
         p = param_def.copy()
@@ -41,6 +42,8 @@ def run_tests(tests, threads=0):
         params.append(test_set)
 
     efti_test(path='../rel/efti', threads=threads, tests=params)
+
+    return params
 
 if __name__ == "__main__":
    run_tests(tests_all, threads=7)

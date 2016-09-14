@@ -30,14 +30,16 @@ def load_js_data(fname):
     return res
 
 def calc_data_fitness(acc, categs, size, complexity_weight):
-    return acc * (complexity_weight*(categs - size)/categs + 1)
+    oversize = complexity_weight*(size - categs)/categs
+    return acc * (1 - oversize*oversize)
 
 def anova(data, desc=False):
     ranks = {}
     # for ds in sorted(data.keys()):
     for ds in data:
         # dict_data = {i:v for i,v in enumerate(data[ds])}
-        ranks[ds] = multicomp_rank(data[ds], desc=desc)
+        if len(data[ds]) >= 2:
+            ranks[ds] = multicomp_rank(data[ds], desc=desc)
 
     return ranks
 
@@ -122,8 +124,8 @@ def dump_mean_sorted_ranks(fn, ranks, cvs):
             csvwriter.writerow([])
 
 
-def rank(cvdir, complexity_weight):
-    data, cvs = load_data(cvdir, complexity_weight)
+def rank(files, complexity_weight):
+    data, cvs = load_data(files, complexity_weight)
     mean_ranks = {}
     for f in features:
         table = form_mean_table(data[f])
@@ -139,11 +141,11 @@ def rank(cvdir, complexity_weight):
 
     dump_mean_sorted_ranks("mean_ranks.csv", mean_ranks, cvs)
 
-def load_data(cvdir, complexity_weight):
+def load_data(files, complexity_weight):
     categs = {d:int(c) for d,c in get_dsets_info('../src/datasets', r"#define CATEG_MAX (\d*)")}
     data = {f:{} for f in features}
     cvs = {}
-    for i,f in enumerate(glob.iglob(os.path.join(cvdir, '**/*.js'), recursive=True)):
+    for i,f in enumerate(files):
         cvs[i] = {'fn': f, 'desc': str(i)}
         res = load_js_data(f)
 
@@ -179,5 +181,5 @@ if __name__ == "__main__":
         complexity_weight = float(sys.argv[2])
     else:
         complexity_weight = 0.2
-
-    rank(sys.argv[1], complexity_weight)
+    files = list(glob.iglob(os.path.join(sys.argv[1], '**/*.js'), recursive=True))
+    rank(files, complexity_weight)
