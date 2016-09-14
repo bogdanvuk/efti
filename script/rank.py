@@ -176,7 +176,7 @@ def load_data(cvdir, complexity_weight):
 if __name__ == "__main__":
     import sys
     if len(sys.argv) > 2:
-        complexity_weight = sys.argv[2]
+        complexity_weight = float(sys.argv[2])
     else:
         complexity_weight = 0.2
 

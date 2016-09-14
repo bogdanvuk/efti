@@ -16,15 +16,17 @@ param_def = {
     'weight_mut': 0.01,
     'topo_mut': 0.002
 }
+test_partition = [['shuttle'], ['eb'], ['bank'], ['letter', 'cvf', 'seg', 'thy', 'veh', 'psd', 'son', 'pid', 'lym', 'zoo', 'irs'], ['krkopt', 'w40', 'ctg', 'spf', 'wilt', 'sb', 'ion', 'ca', 'vote', 'hrts', 'vene'], ['adult', 'magic', 'nurse', 'wfr', 'w21', 'page', 'vow', 'cmc', 'ger', 'ttt', 'gls', 'bcw', 'liv'], ['pen', 'bch', 'jvow', 'eye', 'mushroom', 'wine', 'sick', 'car', 'hrtc', 'ausc', 'bc', 'spect', 'hep']]
 
-tests_all = []
-test_chunks = 7
-cv_runs = 5
-chunk_size = len(files_all)//test_chunks
-for i in range(test_chunks-1):
-    tests_all.append({'dataset_selection': ','.join(files_all[i*chunk_size:(i+1)*chunk_size])})
+tests_all = [{'dataset_selection': ','.join(ds)} for ds in test_partition]
+# tests_all = []
+# test_chunks = 7
+# cv_runs = 5
+# chunk_size = len(files_all)//test_chunks
+# for i in range(test_chunks-1):
+#     tests_all.append({'dataset_selection': ','.join(files_all[i*chunk_size:(i+1)*chunk_size])})
 
-tests_all.append({'dataset_selection': ','.join(files_all[(test_chunks-1)*chunk_size:])})
+# tests_all.append({'dataset_selection': ','.join(files_all[(test_chunks-1)*chunk_size:])})
 
 def run_tests(tests, threads=0):
     params = []
