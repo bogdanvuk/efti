@@ -8,6 +8,7 @@ files_all = ['adult', 'ausc', 'bank', 'bc', 'bch', 'bcw', 'ca', 'car', 'cmc', 'c
 param_def = {
     'max_iter': 500000,
     'ensemble_size': 1,
+    'oversize_w': 0.02,
     # 'dataset_selection': ','.join(sorted(files_all)),
     'search_prob': 0.01,
     's_accel_stagn': 0.001,
@@ -17,7 +18,7 @@ param_def = {
 }
 
 tests_all = []
-test_chunks = 3
+test_chunks = 7
 cv_runs = 5
 chunk_size = len(files_all)//test_chunks
 for i in range(test_chunks-1):
@@ -40,4 +41,4 @@ def run_tests(tests, threads=0):
     efti_test(path='../rel/efti', threads=threads, tests=params)
 
 if __name__ == "__main__":
-   run_tests(tests_all, threads=3)
+   run_tests(tests_all, threads=7)

@@ -106,7 +106,7 @@ def spawn(cmd, path='./efti', params=[], name='w0'):
             except pexpect.EOF:
                 pass
 
-    return cmd
+    return None 
 
 def spawn_worker(kwargs):
     return spawn(**kwargs)
