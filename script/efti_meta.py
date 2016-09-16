@@ -19,13 +19,23 @@ from combine_res import merge_files
 # ]
 
 efti_config = [
-    0.433,          # topology_mutation_rate;
-    0.01,           # weights_mutation_rate;
-    0.01,           # search_probability;
-    0.0,          # search_probability_raise_due_to_stagnation_step;
+    0.55,          # topology_mutation_rate;
+    0,             # weights_mutation_rate;
+    0.5,             # search_probability;
+    0.1,           # search_probability_raise_due_to_stagnation_step;
     0.00005,        # topo_mutation_rate_raise_due_to_stagnation_step;
-    0.00004,        # weight_mutation_rate_raise_due_to_stagnation_step;
-    5e-7,           # return_to_best_prob_iteration_increment;
+    0,             # weight_mutation_rate_raise_due_to_stagnation_step;
+    0.1,           # return_to_best_prob_iteration_increment;
+ ]
+
+efti_config_bound = [
+    1,          # topology_mutation_rate;
+    1,           # weights_mutation_rate;
+    0.5,           # search_probability;
+    0.1,          # search_probability_raise_due_to_stagnation_step;
+    0.1,        # topo_mutation_rate_raise_due_to_stagnation_step;
+    0.1,        # weight_mutation_rate_raise_due_to_stagnation_step;
+    0.2,           # return_to_best_prob_iteration_increment;
  ]
 
 iter_cnt = 0
@@ -79,13 +89,14 @@ def evaluator(candidates, args):
     fit = fitness_eval(fit_res_fn, complexity_weight)
 
     print("Iteration {}, max_iter: {}, fitness: {}".format(iter_cnt, max_iter, fit))
+    print("Current candidate: {}".format(candidates[0]))
 
     iter_cnt += 1
     max_iter = int(max_iter * max_iter_inc)
 
     return [fit]
 
-bounder = inspyred.ec.Bounder([0] * len(efti_config), [1,1,0.5,0.1,0.1,0.1,0.1])
+bounder = inspyred.ec.Bounder([0] * len(efti_config), efti_config_bound)
 
 def main(prng=None, display=False):
     os.makedirs('meta_results', exist_ok=True)
