@@ -19,13 +19,12 @@ from combine_res import merge_files
 # ]
 
 efti_config = [
-    0.55,          # topology_mutation_rate;
+    0.25,          # topology_mutation_rate;
     0,             # weights_mutation_rate;
-    0.5,             # search_probability;
+    0.1,             # search_probability;
     0.1,           # search_probability_raise_due_to_stagnation_step;
-    0.00005,        # topo_mutation_rate_raise_due_to_stagnation_step;
-    0,             # weight_mutation_rate_raise_due_to_stagnation_step;
-    0.1,           # return_to_best_prob_iteration_increment;
+    0.1,        # topo_mutation_rate_raise_due_to_stagnation_step;
+    0.005,             # weight_mutation_rate_raise_due_to_stagnation_step;
  ]
 
 efti_config_bound = [
@@ -35,12 +34,11 @@ efti_config_bound = [
     0.1,          # search_probability_raise_due_to_stagnation_step;
     0.1,        # topo_mutation_rate_raise_due_to_stagnation_step;
     0.1,        # weight_mutation_rate_raise_due_to_stagnation_step;
-    0.2,           # return_to_best_prob_iteration_increment;
  ]
 
 iter_cnt = 0
 max_iter = 5000
-max_iter_inc = 1.08
+max_iter_inc = 1.06
 complexity_weight = 0.02
 
 def generator(random, args):
@@ -68,7 +66,7 @@ def evaluator(candidates, args):
     param_def['s_accel_stagn'] = candidates[0][3]
     param_def['t_accel_stagn'] = candidates[0][4]
     param_def['w_accel_stagn'] = candidates[0][5]
-    param_def['return_prob'] = candidates[0][6]
+    param_def['return_prob'] = 0.1
 
     # Hack! Wait for all threads to finish writing results to .js files
     sleep(10)
