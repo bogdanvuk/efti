@@ -36,6 +36,23 @@ complexity_weight = 0.02
 def generator(random, args):
     return efti_config
 
+def fitness_eval(fn, complexity_weight):
+    res, cvs = load_data([fn], complexity_weight)
+
+    print("Contains {} datasets: ".format(len(res['fit'])))
+    fit = 0
+    for ds in sorted(res['fit']):
+        if (ds == 'bch'):
+            print(res['fit'][ds][0])
+            print(res['acc'][ds][0])
+            print(res['size'][ds][0])
+
+        ds_fit = mean_confidence_interval(res['fit'][ds][0])[0]
+        fit += ds_fit
+        print("{}: {}".format(ds, ds_fit))
+
+    return fit
+
 def evaluator(candidates, args):
     global iter_cnt
     global max_iter
@@ -59,11 +76,7 @@ def evaluator(candidates, args):
     fit_res_fn = 'iter_{}.js'.format(iter_cnt)
     merge_files(fit_res_fn, thread_files)
 
-    res, cvs = load_data([fit_res_fn], complexity_weight)
-
-    fit = 0
-    for ds in res['fit']:
-        fit += mean_confidence_interval(res['fit'][ds][0])[0]
+    fit = fitness_eval(fit_res_fn, complexity_weight)
 
     print("Iteration {}, max_iter: {}, fitness: {}".format(iter_cnt, max_iter, fit))
 
@@ -112,4 +125,8 @@ if __name__ == '__main__':
     # print(ser)
     # print(ser_t)
     # print("Total time needed: {} days".format(sum(ser_t)/60/24))
+
     main(display=True)
+
+    # print(fitness_eval('./results/efti/script/iter_38.js', 0.02))
+    # print(fitness_eval('./results/efti/script/20160914_152246.js', 0.02))
