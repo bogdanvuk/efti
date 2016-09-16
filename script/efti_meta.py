@@ -1,18 +1,28 @@
 #!/usr/bin/env python3
 from random import Random
 import os
-from time import time
+from time import time,sleep
 import inspyred
 from cv_efti_single import run_tests, tests_all, param_def
 from rank import load_data, mean_confidence_interval
 from combine_res import merge_files
 # import logging
 
+#efti_config = [
+#    0.002,          # topology_mutation_rate;
+#    0.01,           # weights_mutation_rate;
+#    0.01,           # search_probability;
+#    0.001,          # search_probability_raise_due_to_stagnation_step;
+#    0.00005,        # topo_mutation_rate_raise_due_to_stagnation_step;
+#    0.00004,        # weight_mutation_rate_raise_due_to_stagnation_step;
+#    5e-7,           # return_to_best_prob_iteration_increment;
+# ]
+
 efti_config = [
-    0.002,          # topology_mutation_rate;
+    0.433,          # topology_mutation_rate;
     0.01,           # weights_mutation_rate;
     0.01,           # search_probability;
-    0.001,          # search_probability_raise_due_to_stagnation_step;
+    0.0,          # search_probability_raise_due_to_stagnation_step;
     0.00005,        # topo_mutation_rate_raise_due_to_stagnation_step;
     0.00004,        # weight_mutation_rate_raise_due_to_stagnation_step;
     5e-7,           # return_to_best_prob_iteration_increment;
@@ -40,7 +50,10 @@ def evaluator(candidates, args):
     param_def['w_accel_stagn'] = candidates[0][5]
     param_def['return_prob'] = candidates[0][6]
 
-    params = run_tests(tests_all, threads=3, res_dir = './meta_results')
+    # Hack! Wait for all threads to finish writing results to .js files
+    sleep(10)
+
+    params = run_tests(tests_all, threads=7, res_dir = './meta_results')
     thread_files = [t['log'] for t in params]
 
     fit_res_fn = 'iter_{}.js'.format(iter_cnt)
