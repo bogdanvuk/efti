@@ -25,17 +25,28 @@ efti_config = [
     0.1,           # search_probability_raise_due_to_stagnation_step;
     0.1,        # topo_mutation_rate_raise_due_to_stagnation_step;
     0.005,             # weight_mutation_rate_raise_due_to_stagnation_step;
+    0.1,           # return_to_best_prob_iteration_increment;
  ]
 
-efti_config_bound = [
+efti_config_bound_low = [
+    0.2,          # topology_mutation_rate;
+    0,           # weights_mutation_rate;
+    0,           # search_probability;
+    0,          # search_probability_raise_due_to_stagnation_step;
+    0,        # topo_mutation_rate_raise_due_to_stagnation_step;
+    7,        # weight_mutation_rate_raise_due_to_stagnation_step;
+    0.1,           # return_to_best_prob_iteration_increment;
+ ]
+
+efti_config_bound_high = [
     1,          # topology_mutation_rate;
     1,           # weights_mutation_rate;
     0.5,           # search_probability;
     0.1,          # search_probability_raise_due_to_stagnation_step;
     0.1,        # topo_mutation_rate_raise_due_to_stagnation_step;
     0.1,        # weight_mutation_rate_raise_due_to_stagnation_step;
+    0.5,           # return_to_best_prob_iteration_increment;
  ]
-
 iter_cnt = 0
 max_iter = 5000
 max_iter_inc = 1.06
@@ -66,7 +77,7 @@ def evaluator(candidates, args):
     param_def['s_accel_stagn'] = candidates[0][3]
     param_def['t_accel_stagn'] = candidates[0][4]
     param_def['w_accel_stagn'] = candidates[0][5]
-    param_def['return_prob'] = 0.1
+    param_def['return_prob'] = candidates[0][6]
 
     # Hack! Wait for all threads to finish writing results to .js files
     sleep(10)
@@ -87,7 +98,7 @@ def evaluator(candidates, args):
 
     return [fit]
 
-bounder = inspyred.ec.Bounder([0] * len(efti_config), efti_config_bound)
+bounder = inspyred.ec.Bounder(efti_config_bound_low, efti_config_bound_high)
 
 def main(prng=None, display=False):
     os.makedirs('meta_results', exist_ok=True)
@@ -97,7 +108,7 @@ def main(prng=None, display=False):
         prng = Random()
         prng.seed(time())
 
-    problem = inspyred.benchmarks.Rosenbrock(2)
+    # problem = inspyred.benchmarks.Rosenbrock(2)
     ea = inspyred.ec.ES(prng)
     ea.terminator = inspyred.ec.terminators.evaluation_termination
     final_pop = ea.evolve(generator=generator,
@@ -105,6 +116,8 @@ def main(prng=None, display=False):
                           pop_size=1,
                           bounder=bounder,
                           maximize=True,
+                          tau = 0.05,
+                          tau_prime=0.01,
                           max_evaluations=60)
 
     if display:
