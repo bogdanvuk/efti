@@ -77,7 +77,7 @@ int crossvalidation()
     efti_init();
 
     efti_printf("$efti_config:max_iterations=%d,topology_mutation_rate=%e,"
-                "topo_mutation_rate_raise_due_to_stagnation_step=%e"
+                "topo_mutation_rate_raise_due_to_stagnation_step=%e,"
                 "weights_mutation_rate=%e,search_probability=%e,search_probability_raise_due_to_stagnation_step=%e,"
                 "weight_mutation_rate_raise_due_to_stagnation_step=%e,return_to_best_prob_iteration_increment=%e,"
                 "complexity_weight=%e,impurity_weight=%e,use_impurity_topo_mut=%d,use_impurity_weight_mut=%d,"

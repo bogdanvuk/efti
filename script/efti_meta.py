@@ -49,17 +49,10 @@ def generator(random, args):
 def fitness_eval(fn, complexity_weight):
     res, cvs = load_data([fn], complexity_weight)
 
-    print("Contains {} datasets: ".format(len(res['fit'])))
     fit = 0
     for ds in sorted(res['fit']):
-        if (ds == 'bch'):
-            print(res['fit'][ds][0])
-            print(res['acc'][ds][0])
-            print(res['size'][ds][0])
-
         ds_fit = mean_confidence_interval(res['fit'][ds][0])[0]
         fit += ds_fit
-        print("{}: {}".format(ds, ds_fit))
 
     return fit
 
