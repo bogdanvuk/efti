@@ -28,33 +28,21 @@ from deap import benchmarks
 from deap import tools
 
 efti_config = [
-    0.25,          # topology_mutation_rate;
-    0,             # weights_mutation_rate;
-    0.1,             # search_probability;
+    0.5,           # search_probability;
     0.1,           # search_probability_raise_due_to_stagnation_step;
-    0.1,        # topo_mutation_rate_raise_due_to_stagnation_step;
-    0.005,             # weight_mutation_rate_raise_due_to_stagnation_step;
     0.1,           # return_to_best_prob_iteration_increment;
  ]
 
 efti_config_bound_low = [
-    0.2,          # topology_mutation_rate;
-    0,           # weights_mutation_rate;
     0,           # search_probability;
-    0,          # search_probability_raise_due_to_stagnation_step;
-    0,        # topo_mutation_rate_raise_due_to_stagnation_step;
-    0,        # weight_mutation_rate_raise_due_to_stagnation_step;
-    0.1,           # return_to_best_prob_iteration_increment;
+    0,           # search_probability_raise_due_to_stagnation_step;
+    0.04,        # return_to_best_prob_iteration_increment;
  ]
 
 efti_config_bound_high = [
-    1,          # topology_mutation_rate;
-    1,           # weights_mutation_rate;
-    0.5,           # search_probability;
-    0.1,          # search_probability_raise_due_to_stagnation_step;
-    0.1,        # topo_mutation_rate_raise_due_to_stagnation_step;
-    0.1,        # weight_mutation_rate_raise_due_to_stagnation_step;
-    0.5,           # return_to_best_prob_iteration_increment;
+    0.8,          # search_probability;
+    0.5,          # search_probability_raise_due_to_stagnation_step;
+    0.3,          # return_to_best_prob_iteration_increment;
  ]
 
 def rescale(vector):
@@ -82,8 +70,8 @@ def fitness_eval(fn, complexity_weight):
     return fit
 
 iter_cnt = 0
-max_iter = 50
-max_iter_inc = 1.06
+max_iter = 50000
+max_iter_inc = 1
 complexity_weight = 0.02
 
 def evaluator(individual):
@@ -103,7 +91,7 @@ def evaluator(individual):
     param_def['return_prob'] = individual[6]
 
     # Hack! Wait for all threads to finish writing results to .js files
-    sleep(1)
+    sleep(10)
 
     params = run_tests(tests_all, threads=7, res_dir = './meta_results')
     thread_files = [t['log'] for t in params]

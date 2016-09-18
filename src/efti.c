@@ -380,6 +380,29 @@ int hw_init()
 
 #endif
 
+int dt_compare(tree_node* dt1, tree_node* dt2){
+    unsigned i;
+
+    assert(dt1->id == dt2->id);
+
+    if (dt1->left == NULL){
+        assert(dt2->left == NULL);
+    } else if (dt2->left == NULL) {
+        assert(0);
+    } else {
+        dt_compare(dt1->left, dt2->left);
+        dt_compare(dt1->right, dt2->right);
+
+        for (i = 0; i < attr_cnt; i++)
+        {
+            assert(dt1->weights[i] == dt2->weights[i]);
+        }
+        assert(dt1->weights[NUM_ATTRIBUTES] == dt2->weights[NUM_ATTRIBUTES]);
+    }
+
+    return 1;
+}
+
 int _extract_hierarcy(tree_node* dt, uint32_t level)
 {
     if (level >= MAX_TREE_DEPTH)
@@ -875,10 +898,16 @@ tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt,
 #endif
         topology_mutated = 0;
 
-        topo_mutation_probability = efti_conf->topology_mutation_rate * leaves_cnt;
+        /* topo_mutation_probability = efti_conf->topology_mutation_rate * leaves_cnt; */
 
-        topo_mutation_probability *= 1 + stagnation_iter*efti_conf->topo_mutation_rate_raise_due_to_stagnation_step;
+        /* topo_mutation_probability *= 1 + stagnation_iter*efti_conf->topo_mutation_rate_raise_due_to_stagnation_step; */
+        if (leaves_cnt < categ_max) {
+            topo_mutation_probability = 1;
+        } else {
+            topo_mutation_probability = 0.5;
+        }
 
+        /* topo_mutation_probability = 0.5; */
         if (topo_mutation_probability > rand_norm())
         {
             float tot_inv_fullness = 0;
@@ -898,6 +927,8 @@ tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt,
                 }
 
                 if (rand_r(seedp) % 2) {
+                /* if (rand_norm() > 0.5) { */
+                /* if ((rand_norm() < 0.3 ? (leaves_cnt < categ_max) : 0.5)) { */
                     if (efti_conf->use_impurity_topo_mut) {
                         float rand_scaled = (float) rand_r(seedp) / RAND_MAX * tot_impurity;
 
@@ -964,9 +995,16 @@ tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt,
 #endif
         }
 
-        weights_mutation_cnt = 1 + efti_conf->weights_mutation_rate *
-            (1 + stagnation_iter*efti_conf->weight_mutation_rate_raise_due_to_stagnation_step) *
-            nonleaves_cnt;
+        /* weights_mutation_cnt = 1 + efti_conf->weights_mutation_rate * */
+        /*     (1 + stagnation_iter*efti_conf->weight_mutation_rate_raise_due_to_stagnation_step) * */
+        /*     nonleaves_cnt; */
+
+        /* weights_mutation_cnt = 1 + stagnation_iter/2; */
+        if (leaves_cnt < 2*categ_max) {
+            weights_mutation_cnt = 1;
+        } else {
+            weights_mutation_cnt = 1;
+        }
 
         for (i = 0; i < weights_mutation_cnt; i++)
         {
@@ -1058,6 +1096,9 @@ tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt,
             return_to_best_probability = efti_conf->return_to_best_prob_iteration_increment *
                 (current_iter - returned_to_best_iter);
 
+            /* return_to_best_probability = (0.04 + 0.001*fmax(categ_max, attr_cnt)) * */
+            /*   (current_iter - returned_to_best_iter); */
+
             search_probability = efti_conf->search_probability * (1 + stagnation_iter*efti_conf->search_probability_raise_due_to_stagnation_step);
 
             /* Should we return to the best yet solution since we are wondering without improvement for a long time? */
@@ -1093,13 +1134,13 @@ tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt,
             else //We failed to advance in fitness :(
             {
 
-                for (i = 0; i < weights_mutation_cnt; i++)
+                for (i = weights_mutation_cnt; i > 0; i--)
                 {
 #if (EFTI_SW == 1)
-                    mut_nodes[i]->weights[mut_attr[i]] = mut_attr_val[i];
+                    mut_nodes[i-1]->weights[mut_attr[i-1]] = mut_attr_val[i-1];
 #endif
 #if (EFTI_HW == 1)
-                    mut_nodes[i]->banks[mut_banks[i]] = mut_bank_val[i];
+                    mut_nodes[i-1]->banks[mut_banks[i-1]] = mut_bank_val[i-1];
 #endif
                 }
 
@@ -1141,6 +1182,7 @@ tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt,
 #endif
                 }
 
+                /* dt_compare(dt_cur, dt_best); */
             }
         }
 
