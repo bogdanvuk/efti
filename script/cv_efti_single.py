@@ -7,15 +7,15 @@ from efti_intf import efti_test
 files_all = ['adult', 'ausc', 'bank', 'bc', 'bch', 'bcw', 'ca', 'car', 'cmc', 'ctg', 'cvf', 'eb', 'eye', 'ger', 'gls', 'hep', 'hrtc', 'hrts', 'ion', 'irs', 'jvow', 'krkopt', 'letter', 'liv', 'lym', 'magic', 'mushroom', 'nurse', 'page', 'pen', 'pid', 'psd', 'sb', 'seg', 'shuttle', 'sick', 'son', 'spect', 'spf', 'thy', 'ttt', 'veh', 'vene', 'vote', 'vow', 'w21', 'w40', 'wfr', 'wilt', 'wine', 'zoo']
 
 param_def = {
-    'max_iter': 100000,
+    'max_iter': 20000,
     'ensemble_size': 1,
     'oversize_w': 0.02,
     # 'dataset_selection': ','.join(sorted(files_all)),
-    'search_prob': 0.5,
-    's_accel_stagn': 0.1,
+    'search_prob': 0,
+    's_accel_stagn': 0.0,
     't_accel_stagn': 0.0,
     'w_accel_stagn': 0.0,
-    'return_prob': 0.1,
+    'return_prob': 0,
     'weight_mut': 0.0,
     'topo_mut': 0.55
 }

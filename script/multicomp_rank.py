@@ -13,7 +13,7 @@ def multicomp(data, algos):
     groups = np.array(groups)
     lindata = np.array(lindata)
     res = pairwise_tukeyhsd(lindata, groups, 0.05)
-    
+
     # print(res)
     return res
 

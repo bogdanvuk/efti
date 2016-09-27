@@ -30,8 +30,8 @@ def load_js_data(fname):
     return res
 
 def calc_data_fitness(acc, categs, size, complexity_weight):
-    oversize = complexity_weight*(size - categs)/categs
-    return acc * (1 - oversize*oversize)
+    oversize = (size - categs)/categs
+    return acc * (1 - complexity_weight*oversize*oversize)
 
 def anova(data, desc=False):
     ranks = {}
@@ -39,6 +39,7 @@ def anova(data, desc=False):
     for ds in data:
         # dict_data = {i:v for i,v in enumerate(data[ds])}
         if len(data[ds]) >= 2:
+            # print('*'*20 + ' {} '.format(ds) + '*'*20)
             ranks[ds] = multicomp_rank(data[ds], desc=desc)
 
     return ranks
@@ -52,12 +53,21 @@ def form_mean_table(data):
 
     return table
 
-def dump_table_csv(fn, table, cvs):
+import re
+def natural_key(string_):
+    """See http://www.codinghorror.com/blog/archives/001018.html"""
+    return [int(s) if s.isdigit() else s for s in re.split(r'(\d+)', string_)]
+
+def dump_table_csv(fn, table, cvs, variance=False, sort_by_desc=True):
     with open(fn, 'w', newline='') as csvfile:
         csvwriter = csv.writer(csvfile, delimiter=',',
                                quotechar='"', quoting=csv.QUOTE_MINIMAL)
 
-        cvs_sort = list(sorted(cvs, key=lambda c: cvs[c]['desc']))
+        if sort_by_desc:
+            cvs_sort = list(sorted(cvs, key=lambda c: natural_key(cvs[c]['desc'])))
+        else:
+            cvs_sort = cvs
+
         csvwriter.writerow(['Dataset'] + [cvs[c]['desc'] for c in cvs_sort])
 
         for d,res in iter(sorted(table.items())):
@@ -71,7 +81,10 @@ def dump_table_csv(fn, table, cvs):
                     except TypeError:
                         val = res[a]
 
-                    row += ["{0:0.2f}".format(val)]
+                    if variance:
+                        row += ["{0:0.2f} ± {1:0.2f}".format(res[a][0], res[a][1])]
+                    else:
+                        row += ["{0:0.2f}".format(val)]
                 else:
                     row += ["-"]
 
@@ -126,6 +139,15 @@ def dump_mean_sorted_ranks(fn, ranks, cvs):
 
 def rank(files, complexity_weight):
     data, cvs = load_data(files, complexity_weight)
+    # for k,a in cvs.items():
+    #     if a['desc'] == "nodt":
+    #         break
+
+    # for ds in data['time']:
+    #     if k in data['time'][ds]:
+    #         for i in range(len(data['time'][ds][k])):
+    #             data['time'][ds][k][i] *= 20
+
     mean_ranks = {}
     for f in features:
         table = form_mean_table(data[f])
@@ -134,6 +156,7 @@ def rank(files, complexity_weight):
         table_rel = derive_relative_table(table)
         dump_table_csv("mean_relative_{}.csv".format(f), table_rel, cvs)
 
+        # if f == "fit":
         rank = anova(data[f], features[f]['desc'])
         dump_table_csv("rank_{}.csv".format(f), rank, cvs)
 
@@ -142,7 +165,13 @@ def rank(files, complexity_weight):
     dump_mean_sorted_ranks("mean_ranks.csv", mean_ranks, cvs)
 
 def load_data(files, complexity_weight):
-    categs = {d:int(c) for d,c in get_dsets_info('../src/datasets', r"#define CATEG_MAX (\d*)")}
+    categs = {
+        d:int(c) for d,c in get_dsets_info(
+            os.path.expandvars('$EFTI/src/datasets'),
+            r"#define CATEG_MAX (\d*)"
+        )
+    }
+
     data = {f:{} for f in features}
     cvs = {}
     for i,f in enumerate(files):
@@ -181,5 +210,9 @@ if __name__ == "__main__":
         complexity_weight = float(sys.argv[2])
     else:
         complexity_weight = 0.2
+
+    if 'EFTI' not in os.environ:
+        os.environ['EFTI'] = os.path.abspath('../')
+
     files = list(glob.iglob(os.path.join(sys.argv[1], '**/*.js'), recursive=True))
     rank(files, complexity_weight)
