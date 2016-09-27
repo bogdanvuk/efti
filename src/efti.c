@@ -20,6 +20,10 @@
 #define rand() lfsr_rand()
 #endif
 
+#if (DT_USE_LOOP_UNFOLD == 1)
+#include "loop_unfold.h"
+#endif
+
 #if EFTI_HW == 1
 
 #include "xil_io.h"
@@ -135,6 +139,7 @@ tree_node* dt_best;
 tree_node* dt_cur;
 uint32_t weights_mutation_cnt;
 uint32_t topology_mutated;
+tree_node* topo_mut_node;
 uint_fast16_t mut_banks[MAX_WEIGHT_MUTATIONS];
 tree_node* mut_nodes[MAX_WEIGHT_MUTATIONS];
 uint32_t mut_masks[MAX_WEIGHT_MUTATIONS];
@@ -540,22 +545,27 @@ tree_node* find_dt_leaf_for_inst(tree_node* dt, int32_t attributes[], int32_t in
     T_Last_Classification* last_classification = &last_iter_classification[inst_id];
     cur_node = dt;
 
-    if (topology_mutated || recalc_all){//if this isn't a first classification, and topology has not been mutated
-        path_diverged = 1;
-    }
+    /* if (topology_mutated || recalc_all){//if this isn't a first classification, and topology has not been mutated */
+    /*     path_diverged = 1; */
+    /* } */
 
     while (cur_node->left != NULL)
     {
         if (!path_diverged){
-            for(j = 0; j < weights_mutation_cnt; j++) {
-                if (cur_node == mut_nodes[j]) {
-                    if (!cur_node_mutated) {
-                        res = last_classification->sum[depth];
-                    }
-                    cur_node_mutated = 1;
-                    if (mut_attr[j] != NUM_ATTRIBUTES) {
-                        res -= mut_attr_val[j]*attributes[mut_attr[j]];
-                        res += cur_node->weights[mut_attr[j]] * attributes[mut_attr[j]];
+            if (cur_node == topo_mut_node) {
+                needed_nodes_traversed++;
+                res = evaluate_node_test(cur_node->weights, attributes, attr_cnt);
+            } else {
+                for(j = 0; j < weights_mutation_cnt; j++) {
+                    if (cur_node == mut_nodes[j]) {
+                        if (!cur_node_mutated) {
+                            res = last_classification->sum[depth];
+                        }
+                        cur_node_mutated = 1;
+                        if (mut_attr[j] != NUM_ATTRIBUTES) {
+                            res -= mut_attr_val[j]*attributes[mut_attr[j]];
+                            res += cur_node->weights[mut_attr[j]] * attributes[mut_attr[j]];
+                        }
                     }
                 }
             }
@@ -564,6 +574,7 @@ tree_node* find_dt_leaf_for_inst(tree_node* dt, int32_t attributes[], int32_t in
             } else {
                 cur_node = last_classification->path[depth];
             }
+        } else {
 #if (DT_USE_LOOP_UNFOLD == 1)
             needed_nodes_traversed++;
             res = evaluate_node_test(cur_node->weights, attributes, attr_cnt);
@@ -574,19 +585,18 @@ tree_node* find_dt_leaf_for_inst(tree_node* dt, int32_t attributes[], int32_t in
                 res += cur_node->weights[j] * attributes[j];
             }
 #endif
-            if (path_diverged) {
-                res_scaled = res >> ATTRIBUTE_RES >> DT_ADDER_TREE_DEPTH;
-                res_scaled = res >> ATTRIBUTE_RES >> DT_ADDER_TREE_DEPTH;
+        }
 
-                if (res_scaled >= cur_node->weights[NUM_ATTRIBUTES])
-                {
-                    cur_node = cur_node->right;
-                }
-                else
-                {
-                    cur_node = cur_node->left;
-                }
+        if (path_diverged) {
+            res_scaled = res >> ATTRIBUTE_RES >> DT_ADDER_TREE_DEPTH;
 
+            if (res_scaled >= cur_node->weights[NUM_ATTRIBUTES])
+            {
+                cur_node = cur_node->right;
+            }
+            else
+            {
+                cur_node = cur_node->left;
             }
 
             if (!(recalc_all)) {
@@ -960,7 +970,6 @@ tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt,
     uint32_t stagnation_iter;
 
     tree_node* temp_mut_hang_tree;
-    tree_node* topo_mut_node;
     tree_node* topo_mut_sibling;
     uint16_t weight_temp;
 
