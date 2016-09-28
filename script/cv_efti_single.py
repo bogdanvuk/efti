@@ -12,11 +12,12 @@ param_def = {
     'oversize_w': 0.02,
     # 'dataset_selection': ','.join(sorted(files_all)),
     'search_prob': 0,
+    'impurity_weightmut': 1,
     's_accel_stagn': 0.0,
     't_accel_stagn': 0.0,
     'w_accel_stagn': 0.0,
     'return_prob': 0,
-    'weight_mut': 0.0,
+    'weight_mut': 0.1,
     'topo_mut': 0.55
 }
 

@@ -89,7 +89,7 @@ u8 * volatile RxBufferPtr;
 
 const Efti_Conf_t *efti_conf;
 
-#define rand_norm() ((rand_r(seedp) % 10000) / 10000.0)
+
 #define TIMING_EFTI_ID					0
 #define TIMING_FITNESS_CALC_ID			1
 
@@ -142,6 +142,33 @@ uint32_t non_eval_ticks = 0;
 #define TOPO_LEFT_CHILD_REMOVED		2
 #define TOPO_RIGHT_CHILD_REMOVED	3
 #define TOPO_ROOT_CHILD_REMOVED 	4
+
+#define rand_norm() ((rand_r(seedp) % 10000) / 10000.0)
+#include <float.h>
+double norm(double mu, double sigma)
+{
+    const double epsilon = -DBL_MAX;
+    const double two_pi = 2.0*3.14159265358979323846;
+
+    static double z0, z1;
+    static unsigned generate;
+    generate = !generate;
+
+    if (!generate)
+        return z1 * sigma + mu;
+
+    double u1, u2;
+    do
+    {
+        u1 = rand() * (1.0 / RAND_MAX);
+        u2 = rand() * (1.0 / RAND_MAX);
+    }
+    while ( u1 <= epsilon );
+
+    z0 = sqrt(-2.0 * log(u1)) * cos(two_pi * u2);
+    z1 = sqrt(-2.0 * log(u1)) * sin(two_pi * u2);
+    return z0 * sigma + mu;
+}
 
 //void __attribute__((optimize("O0"))) HbAssert(uint32_t expression)
 void HbAssert(uint32_t expression)
@@ -995,16 +1022,22 @@ tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt,
 #endif
         }
 
-        /* weights_mutation_cnt = 1 + efti_conf->weights_mutation_rate * */
+        if  (topology_mutated)
+        {
+            weights_mutation_cnt = 1;
+        } else {
+            weights_mutation_cnt = 1 + efti_conf->weights_mutation_rate * nonleaves_cnt;
+        }
+
         /*     (1 + stagnation_iter*efti_conf->weight_mutation_rate_raise_due_to_stagnation_step) * */
         /*     nonleaves_cnt; */
 
         /* weights_mutation_cnt = 1 + stagnation_iter/2; */
-        if (leaves_cnt < 2*categ_max) {
-            weights_mutation_cnt = 1;
-        } else {
-            weights_mutation_cnt = 1;
-        }
+        /* if (leaves_cnt < 2*categ_max) { */
+        /*     weights_mutation_cnt = 1; */
+        /* } else { */
+        /*     weights_mutation_cnt = 1; */
+        /* } */
 
         for (i = 0; i < weights_mutation_cnt; i++)
         {
@@ -1052,8 +1085,10 @@ tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt,
 
 #if (EFTI_SW == 1)
             mut_attr_val[i] = mut_nodes[i]->weights[mut_attr[i]];
-            weight_temp = mut_nodes[i]->weights[mut_attr[i]];
-            mut_nodes[i]->weights[mut_attr[i]] = (int16_t) (weight_temp ^ (1 << mut_bit[i]));
+            double sigma = abs(mut_attr_val[i] + (1 << COEF_RES)/10)/3;
+            mut_nodes[i]->weights[mut_attr[i]] =
+                (int32_t) (mut_attr_val[i] + norm(0, sigma)) & ((1 << COEF_RES) -1);
+            /* mut_nodes[i]->weights[mut_attr[i]] = (int16_t) (weight_temp ^ (1 << mut_bit[i])); */
 #endif
         }
 
