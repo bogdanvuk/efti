@@ -929,7 +929,7 @@ tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt,
 
         /* topo_mutation_probability *= 1 + stagnation_iter*efti_conf->topo_mutation_rate_raise_due_to_stagnation_step; */
         if (leaves_cnt < categ_max) {
-            topo_mutation_probability = 1;
+            topo_mutation_probability = 0.5;
         } else {
             topo_mutation_probability = 0.5;
         }
@@ -1022,12 +1022,13 @@ tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt,
 #endif
         }
 
-        if  (topology_mutated)
-        {
-            weights_mutation_cnt = 1;
-        } else {
-            weights_mutation_cnt = 1 + efti_conf->weights_mutation_rate * nonleaves_cnt;
-        }
+        //if  (topology_mutated)
+        //{
+        //    weights_mutation_cnt = 1;
+        //} else {
+        //    weights_mutation_cnt = 1 + efti_conf->weights_mutation_rate * nonleaves_cnt * attr_cnt;
+        //}
+        weights_mutation_cnt = 2 + efti_conf->weights_mutation_rate * nonleaves_cnt * attr_cnt;
 
         /*     (1 + stagnation_iter*efti_conf->weight_mutation_rate_raise_due_to_stagnation_step) * */
         /*     nonleaves_cnt; */
@@ -1061,7 +1062,8 @@ tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt,
                 }
             }
 
-            if (rand_r(seedp) % 2)
+	    // uint32_t attr_sel = rand_r(seedp) % (attr_cnt + 1);
+            if (rand_r(seedp) % ((int) log2(attr_cnt) + 1))
             {
                 mut_attr[i] = rand_r(seedp) % attr_cnt;
             }
@@ -1085,7 +1087,7 @@ tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt,
 
 #if (EFTI_SW == 1)
             mut_attr_val[i] = mut_nodes[i]->weights[mut_attr[i]];
-            double sigma = abs(mut_attr_val[i] + (1 << COEF_RES)/10)/3;
+            double sigma = abs(mut_attr_val[i] + (1 << COEF_RES)/10)/5;
             mut_nodes[i]->weights[mut_attr[i]] =
                 (int32_t) (mut_attr_val[i] + norm(0, sigma)) & ((1 << COEF_RES) -1);
             /* mut_nodes[i]->weights[mut_attr[i]] = (int16_t) (weight_temp ^ (1 << mut_bit[i])); */

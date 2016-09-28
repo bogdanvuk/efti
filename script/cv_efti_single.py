@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import sys
 import os
 import time
@@ -17,7 +18,7 @@ param_def = {
     't_accel_stagn': 0.0,
     'w_accel_stagn': 0.0,
     'return_prob': 0,
-    'weight_mut': 0.1,
+    'weight_mut': 0.0,
     'topo_mut': 0.55
 }
 
@@ -43,4 +44,4 @@ def run_tests(tests, threads=0, res_dir='.'):
     return params
 
 if __name__ == "__main__":
-   run_tests(tests_all, threads=3)
+   run_tests(tests_all, threads=7)
