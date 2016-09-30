@@ -130,7 +130,6 @@ int32_t changed_depths[NUM_INST_MAX*MAX_TREE_DEPTH];
 int32_t changed_nodes_num;
 uint64_t total_nodes_traversed;
 uint64_t needed_nodes_traversed;
-uint64_t total_recalc_all;
 float perc_recalc;
 
 #define CLK_FREQ 	225e+6
@@ -139,6 +138,7 @@ tree_node* dt_best;
 tree_node* dt_cur;
 uint32_t weights_mutation_cnt;
 uint32_t topology_mutated;
+tree_node* temp_mut_hang_tree;
 tree_node* topo_mut_node;
 uint_fast16_t mut_banks[MAX_WEIGHT_MUTATIONS];
 tree_node* mut_nodes[MAX_WEIGHT_MUTATIONS];
@@ -495,7 +495,7 @@ int check_node_mutated(tree_node* cur_node, int depth, int64_t* res, T_Last_Clas
     return cur_node_mutated;
 }
 
-int save_path_change(tree_node* cur_node, int depth, int32_t inst_id, int64_t res, T_Last_Classification* last_classification) {
+int save_path_change_temp(tree_node* cur_node, int depth, int32_t inst_id, int64_t res, T_Last_Classification* last_classification) {
     int path_diverged = 1;
 
     changed_depths[changed_nodes_num] = depth;
@@ -516,11 +516,26 @@ int save_path_change(tree_node* cur_node, int depth, int32_t inst_id, int64_t re
 
 void apply_path_changes() {
     int i;
+    /* if (current_iter > 35600) { */
+    /*     efti_printf("\n******************* Path changes applied... ***********************\n"); */
+    /* } */
 
     for (i = 0; i < changed_nodes_num; i++) {
         last_iter_classification[changed_instances[i]].sum[changed_depths[i]] = changed_eval_sums[i];
         last_iter_classification[changed_instances[i]].path[changed_depths[i]] = changed_paths[i];
     }
+
+
+    /* if (current_iter > 35600) { */
+    /*     i = 5; */
+    /*     efti_printf("Iter %d, path for inst %d: ", current_iter, i); */
+    /*     for (int j = 0; j < 8; j++) { */
+    /*         char p[16]; */
+    /*         sprintf(p, "%p", last_iter_classification[i].path[j]); */
+    /*         efti_printf(" %s", &p[5]); */
+    /*     } */
+    /*     efti_printf("\n"); */
+    /* } */
 }
 
 void apply_single_path_change(T_Last_Classification* last_classification, int depth, int64_t res, tree_node* cur_node) {
@@ -532,16 +547,22 @@ void apply_single_path_change(T_Last_Classification* last_classification, int de
 /* #include "loop_unfold.c" */
 /* #endif */
 
-tree_node* find_dt_leaf_for_inst(tree_node* dt, int32_t attributes[], int32_t inst_id)
+tree_node* find_dt_leaf_for_inst(tree_node* dt, int32_t attributes[], int32_t inst_id, uint32_t total_recalc_all)
 {
     tree_node* cur_node;
     int16_t res_scaled;
     int64_t res;
     uint_fast16_t j;
-    int path_diverged = 0;
+#if (DELTA_CLASSIFICATION == 1)
+    int path_diverged = total_recalc_all;
+#else
+    int path_diverged = 1;
+#endif
     int depth = 0;
     int cur_node_mutated = 0;
-    int recalc_all = 0; //returned_to_best;
+    int cur_node_manipulated = 0;
+    int path_maybe_merged_back;
+    int child_node_manipulated = 0;
     T_Last_Classification* last_classification = &last_iter_classification[inst_id];
     cur_node = dt;
 
@@ -551,8 +572,24 @@ tree_node* find_dt_leaf_for_inst(tree_node* dt, int32_t attributes[], int32_t in
 
     while (cur_node->left != NULL)
     {
+        tree_node* prev_node = cur_node;
+        cur_node_manipulated = 0;
+        cur_node_mutated = 0;
+
         if (!path_diverged){
-            if (cur_node == topo_mut_node) {
+            if (topology_mutated) {
+                if (cur_node == topo_mut_node) {
+                    cur_node_manipulated = 1;
+                } else if (temp_mut_hang_tree != NULL) {
+                    if (cur_node == temp_mut_hang_tree->parent) {
+                        cur_node_manipulated = 1;
+                    } else if (topology_mutated == TOPO_ROOT_CHILD_REMOVED) {
+                        cur_node_manipulated = 1;
+                    }
+                }
+            }
+
+            if (cur_node_manipulated) {
                 needed_nodes_traversed++;
                 res = evaluate_node_test(cur_node->weights, attributes, attr_cnt);
             } else {
@@ -566,13 +603,16 @@ tree_node* find_dt_leaf_for_inst(tree_node* dt, int32_t attributes[], int32_t in
                             res -= mut_attr_val[j]*attributes[mut_attr[j]];
                             res += cur_node->weights[mut_attr[j]] * attributes[mut_attr[j]];
                         }
+                        assert(res == evaluate_node_test(cur_node->weights, attributes, attr_cnt));
                     }
                 }
             }
-            if (cur_node_mutated) {
+
+            if (cur_node_mutated || cur_node_manipulated) {
                 path_diverged = 1;
             } else {
                 cur_node = last_classification->path[depth];
+                assert(cur_node->parent == prev_node);
             }
         } else {
 #if (DT_USE_LOOP_UNFOLD == 1)
@@ -598,15 +638,13 @@ tree_node* find_dt_leaf_for_inst(tree_node* dt, int32_t attributes[], int32_t in
             {
                 cur_node = cur_node->left;
             }
-
-            if (!(recalc_all)) {
-                path_diverged = save_path_change(cur_node, depth, inst_id, res, last_classification);
-            }
-
-        }
-
-        if (recalc_all) {
-            apply_single_path_change(last_classification, depth, res, cur_node);
+#if (DELTA_CLASSIFICATION == 1)
+                path_maybe_merged_back = save_path_change_temp(cur_node, depth, inst_id, res, last_classification);
+                // Watch for orphan subtrees that are still listed in saved paths
+                if ((cur_node_mutated) && is_child_of(prev_node, cur_node)) {
+                    path_diverged = path_maybe_merged_back;
+                }
+#endif
         }
 
         depth++;
@@ -636,7 +674,7 @@ void hw_start(uint32_t get_classes)
 
 #endif
 
-void find_node_distribution(tree_node* dt)
+void find_node_distribution(tree_node* dt, uint32_t recalc_all)
 {
     unsigned i;
 
@@ -647,20 +685,29 @@ void find_node_distribution(tree_node* dt)
 
 #if (EFTI_SW == 1)
 
-        node = find_dt_leaf_for_inst(dt, instances[i], i)->id;
+        node = find_dt_leaf_for_inst(dt, instances[i], i, recalc_all)->id;
 #if (EFTI_HW_SW_FITNESS == 1)
         HbAssert(node == (*rxBuf++));
 #endif
 #else
         node_id = (*rxBuf++);
 #endif
-
         uint32_t categ = categories[i];
 
         assert(node <= LEAVES_MAX);
         assert(categ <= categ_max);
         node_categories_distrib[node][categ]++;
+
+        /* if (current_iter == 12) { */
+        /*     efti_printf("Classify %d into %d\n", i, node); */
+        /* } */
     }
+
+#if (DELTA_CLASSIFICATION == 1)
+    if (recalc_all == 1) {
+        apply_path_changes();
+    }
+#endif
 }
 
 float ensemble_eval(tree_node* dt[], int ensemble_size) {
@@ -679,7 +726,7 @@ float ensemble_eval(tree_node* dt[], int ensemble_size) {
         {
             tree_node* node;
 
-            node = find_dt_leaf_for_inst(dt[j], instances[i],i);
+            node = find_dt_leaf_for_inst(dt[j], instances[i],i,1);
 
             vote[node->cls]++;
         }
@@ -727,7 +774,7 @@ float dt_eval(tree_node* dt)
         uint32_t node;
 
 #if (EFTI_SW == 1)
-        node = find_dt_leaf_for_inst(dt, instances[i],i)->id;
+        node = find_dt_leaf_for_inst(dt, instances[i],i, 1)->id;
 #if (EFTI_HW_SW_FITNESS == 1)
         HbAssert(node == (*rxBuf++));
 #endif
@@ -766,9 +813,9 @@ void assign_classes(tree_node* dt)
     {
     }
 
-    find_node_distribution(dt);
+    find_node_distribution(dt, 1);
 #else
-    find_node_distribution(dt);
+    find_node_distribution(dt, 1);
 #endif
 
     for (i = 1; i <= leaves_cnt; i++)
@@ -791,10 +838,9 @@ void assign_classes(tree_node* dt)
     }
 }
 
-float fitness_eval(tree_node* dt)
+float fitness_eval(tree_node* dt, uint32_t recalc_all_paths)
 {
     uint_fast16_t hits;
-    uint32_t status;
     float fitness;
     //uint32_t accuracy;
 
@@ -816,6 +862,12 @@ float fitness_eval(tree_node* dt)
         memset(node_categories_distrib[i], 0, sizeof(uint_fast16_t)*(categ_max+1));
     }
 
+    /* if (current_iter == 35607) { */
+    /*     efti_printf("Iter %d: seed %d\n", current_iter, seedp); */
+    /*     print_t(dt_cur, attr_cnt); */
+    /*     efti_printf("\n"); */
+    /* } */
+
 #if (EFTI_HW_SW_FITNESS == 1)
     while (*rxBuf == 0)
     {
@@ -823,11 +875,12 @@ float fitness_eval(tree_node* dt)
 
     find_node_distribution(dt);
 #else
-    find_node_distribution(dt);
+    find_node_distribution(dt, recalc_all_paths);
 #endif
 
     hits = 0;
     tot_impurity = 0;
+
     for (i = 1; i <= leaves_cnt; i++)
     {
         uint_fast16_t* node_distrib = &node_categories_distrib[i][1];
@@ -845,6 +898,10 @@ float fitness_eval(tree_node* dt)
                 dominant_category_cnt = categ_cnt;
             }
         }
+
+        /* if (current_iter == 12) { */
+        /*     efti_printf("leaf %d, categ %d, cnt %d\n", i, dominant_category, dominant_category_cnt); */
+        /* } */
 
         hits += dominant_category_cnt;
         leaves[i-1]->cls = dominant_category;
@@ -969,13 +1026,13 @@ tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt,
 
     uint32_t stagnation_iter;
 
-    tree_node* temp_mut_hang_tree;
     tree_node* topo_mut_sibling;
     uint16_t weight_temp;
 
     float topo_mutation_probability;
     float return_to_best_probability;
     float search_probability;
+    uint32_t recalc_all_paths = 0;
 
     float fitness_best, fitness_cur, fitness_new;
     unsigned i, j;
@@ -1007,7 +1064,7 @@ tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt,
     hw_set_whole_tree(dt_cur);
 #endif
 
-    fitness_best = fitness_cur = fitness_eval(dt_cur);
+    fitness_best = fitness_cur = fitness_eval(dt_cur, 1);
     stagnation_iter = 0;
     returned_to_best_iter = 0;
     temp_mut_hang_tree = NULL;
@@ -1077,6 +1134,8 @@ tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt,
                         tree_create_child(topo_mut_node, CHILD_LEFT);
                         tree_create_child(topo_mut_node, CHILD_RIGHT);
                         random_hiperplane(topo_mut_node->weights);
+                        temp_mut_hang_tree = NULL;
+                        topo_mut_sibling = NULL;
 #if (EFTI_HW == 1)
                         pack_coefs(topo_mut_node->weights, NUM_ATTRIBUTES + 1, COEF_RES, topo_mut_node->banks);
 #endif
@@ -1123,7 +1182,15 @@ tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt,
 #if (EFTI_HW == 1)
             hw_set_whole_tree(dt_cur);
 #endif
+#if (EFTI_PRINT_DTS == 1)
+            if (current_iter > 35600) {
+                efti_printf("Iter %d:\n", current_iter);
+                print_t(dt_cur, attr_cnt);
+                efti_printf("\n");
+            }
+#endif
         }
+
 
         /* weights_mutation_cnt = 1 + efti_conf->weights_mutation_rate * */
         /*     (1 + stagnation_iter*efti_conf->weight_mutation_rate_raise_due_to_stagnation_step) * */
@@ -1186,7 +1253,7 @@ tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt,
 #endif
         }
 
-        fitness_new = fitness_eval(dt_cur);
+        fitness_new = fitness_eval(dt_cur, 0);
 
         if ((fitness_new - fitness_cur) > 1e-6)
         {
@@ -1194,7 +1261,7 @@ tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt,
 //#if ((EFTI_HW == 1) && (EFTI_SW == 0))
 //			hw_apply_mutation(mut_nodes, mut_attr, mut_bit, weights_mutation_cnt);
 //#endif
-
+            apply_path_changes();
             fitness_cur = fitness_new;
             delete_trimmed_subtree(topology_mutated, temp_mut_hang_tree, topo_mut_node);
             if ((fitness_cur - fitness_best) > 1e-6)
@@ -1242,6 +1309,7 @@ tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt,
 #endif
                 fitness_cur = fitness_best;
                 returned_to_best_iter = current_iter;
+                recalc_all_paths = 1;
                 stagnation_iter = 0;
 #if (EFTI_PRINT_STATS == 1)
                 efti_printf("RB: i=%d\n\r", current_iter);
@@ -1257,7 +1325,7 @@ tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt,
                 efti_printf("SP: i=%d\n\r", current_iter);
 #endif
                 delete_trimmed_subtree(topology_mutated, temp_mut_hang_tree, topo_mut_node);
-
+                apply_path_changes();
                 fitness_cur = fitness_new;
             }
             else //We failed to advance in fitness :(

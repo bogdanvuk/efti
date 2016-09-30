@@ -8,6 +8,8 @@
 
 #define EFTI_PRINT_PROGRESS_INTERVAL	100000
 #define EFTI_PRINT_STATS				0
+#define DELTA_CLASSIFICATION    0
+#define EFTI_PRINT_DTS          0
 
 #define DT_USE_LOOP_UNFOLD			1
 

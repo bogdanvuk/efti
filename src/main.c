@@ -17,21 +17,21 @@
 #include "crossvalid.h"
 
 #define CROSSVALIDS_NUM           5
-#define EFTI_CROSSVALIDATION_RUNS 5
+#define EFTI_CROSSVALIDATION_RUNS 1
 #define ENSEMBLE_SIZE_MAX         32
-#define MAX_ITERATIONS            100000
+#define MAX_ITERATIONS            10
 #define SEED                      29
 
 Efti_Conf_t efti_config = {
     MAX_ITERATIONS,	// max_iterations
-    0.002,          // topology_mutation_rate;
-    0.01,           // weights_mutation_rate;
-    0.01,           // search_probability;
-    0.001,          // search_probability_raise_due_to_stagnation_step;
-    0.00005,        // topo_mutation_rate_raise_due_to_stagnation_step;
-    0.00004,        // weight_mutation_rate_raise_due_to_stagnation_step;
-    5e-7,           // return_to_best_prob_iteration_increment;
-    0.2,            // complexity_weight;
+    0.5,          // topology_mutation_rate;
+    0.0,           // weights_mutation_rate;
+    0.0,           // search_probability;
+    0.0,          // search_probability_raise_due_to_stagnation_step;
+    0.0,        // topo_mutation_rate_raise_due_to_stagnation_step;
+    0.0,        // weight_mutation_rate_raise_due_to_stagnation_step;
+    0.0,           // return_to_best_prob_iteration_increment;
+    0.02,            // complexity_weight;
     0,              // impurity_weight;
     0,              // use_impurity_topo_mut;
     0,              // use_impurity_weight_mut;
@@ -148,7 +148,7 @@ int crossvalidation()
                             efti_config.ensemble_size
                     );
 #endif
-
+                /* return 0; */
                 for (e = 0; e < efti_config.ensemble_size; e++)
                 {
                     tree_delete_node(dt[e]);
