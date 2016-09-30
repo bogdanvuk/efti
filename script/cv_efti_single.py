@@ -22,7 +22,9 @@ param_def = {
     'topo_mut': 0.55
 }
 
-test_partition = [['shuttle'], ['eb'], ['bank'], ['letter', 'cvf', 'seg', 'thy', 'veh', 'psd', 'son', 'pid', 'lym', 'zoo', 'irs'], ['krkopt', 'w40', 'ctg', 'spf', 'wilt', 'sb', 'ion', 'ca', 'vote', 'hrts', 'vene'], ['adult', 'magic', 'nurse', 'wfr', 'w21', 'page', 'vow', 'cmc', 'ger', 'ttt', 'gls', 'bcw', 'liv'], ['pen', 'bch', 'jvow', 'eye', 'mushroom', 'wine', 'sick', 'car', 'hrtc', 'ausc', 'bc', 'spect', 'hep']]
+# test_partition = [['shuttle'], ['eb'], ['bank'], ['letter', 'cvf', 'seg', 'thy', 'veh', 'psd', 'son', 'pid', 'lym', 'zoo', 'irs'], ['krkopt', 'w40', 'ctg', 'spf', 'wilt', 'sb', 'ion', 'ca', 'vote', 'hrts', 'vene'], ['adult', 'magic', 'nurse', 'wfr', 'w21', 'page', 'vow', 'cmc', 'ger', 'ttt', 'gls', 'bcw', 'liv'], ['pen', 'bch', 'jvow', 'eye', 'mushroom', 'wine', 'sick', 'car', 'hrtc', 'ausc', 'bc', 'spect', 'hep']]
+
+test_partition = [['eb'], ['letter', 'cvf', 'seg', 'thy', 'veh', 'psd', 'son', 'pid', 'lym', 'zoo', 'irs'], ['krkopt', 'w40', 'ctg', 'spf', 'wilt', 'sb', 'ion', 'ca', 'vote', 'hrts', 'vene'], ['adult', 'magic', 'nurse', 'wfr', 'w21', 'page', 'vow', 'cmc', 'ger', 'ttt', 'gls', 'bcw', 'liv'], ['pen', 'bch', 'jvow', 'eye', 'mushroom', 'wine', 'sick', 'car', 'hrtc', 'ausc', 'bc', 'spect', 'hep']]
 
 tests_all = [{'dataset_selection': ','.join(ds)} for ds in test_partition]
 # tests_all = [{'dataset_selection': ','.join(ds)} for ds in [files_all]]
@@ -44,4 +46,4 @@ def run_tests(tests, threads=0, res_dir='.'):
     return params
 
 if __name__ == "__main__":
-   run_tests(tests_all, threads=7)
+   run_tests(tests_all, threads=3)

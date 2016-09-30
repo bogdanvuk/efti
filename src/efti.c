@@ -432,6 +432,7 @@ int dt_compare(tree_node* dt1, tree_node* dt2){
 
 int _extract_hierarcy(tree_node* dt, uint32_t level)
 {
+
     if (level >= MAX_TREE_DEPTH)
     {
         level = MAX_TREE_DEPTH - 1;
@@ -444,6 +445,7 @@ int _extract_hierarcy(tree_node* dt, uint32_t level)
         leaves[leaves_cnt] = dt;
         leaves_cnt++;
         dt->id = leaves_cnt;
+        dt->to_bottom = 0;
     }
     else
     {
@@ -456,6 +458,7 @@ int _extract_hierarcy(tree_node* dt, uint32_t level)
         nonleaves_cnt++;
         _extract_hierarcy(dt->left, level + 1);
         _extract_hierarcy(dt->right, level + 1);
+        dt->to_bottom = fmax(dt->left->to_bottom, dt->left->to_bottom) + 1;
     }
 
     return 0;
@@ -1028,7 +1031,7 @@ tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt,
         //} else {
         //    weights_mutation_cnt = 1 + efti_conf->weights_mutation_rate * nonleaves_cnt * attr_cnt;
         //}
-        weights_mutation_cnt = 2 + efti_conf->weights_mutation_rate * nonleaves_cnt * attr_cnt;
+        weights_mutation_cnt = 1 + efti_conf->weights_mutation_rate * nonleaves_cnt * attr_cnt;
 
         /*     (1 + stagnation_iter*efti_conf->weight_mutation_rate_raise_due_to_stagnation_step) * */
         /*     nonleaves_cnt; */
@@ -1048,13 +1051,13 @@ tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt,
             } else {
                 float tot_node_impurity = 0;
                 for (j = 0; j < nonleaves_cnt; j++) {
-                    tot_node_impurity += nonleaves[j]->impurity;
+                    tot_node_impurity += nonleaves[j]->impurity;// *nonleaves[j]->to_bottom; //nonleaves[j]->impurity*nonleaves[j]->level;
                 }
 
                 float rand_scaled = (float) rand_r(seedp) / RAND_MAX * tot_node_impurity;
 
                 for (j = 0; j < nonleaves_cnt; j++) {
-                    rand_scaled -= nonleaves[j]->impurity;
+                    rand_scaled -= nonleaves[j]->impurity;// *nonleaves[j]->to_bottom; //nonleaves[j]->impurity*nonleaves[j]->level;
                     if (rand_scaled <= 0) {
                         mut_nodes[i] = nonleaves[j];
                         break;
@@ -1087,7 +1090,7 @@ tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt,
 
 #if (EFTI_SW == 1)
             mut_attr_val[i] = mut_nodes[i]->weights[mut_attr[i]];
-            double sigma = abs(mut_attr_val[i] + (1 << COEF_RES)/10)/5;
+            double sigma = abs(mut_attr_val[i] + (1 << COEF_RES)/10)/5; //mut_nodes[i]->to_bottom;
             mut_nodes[i]->weights[mut_attr[i]] =
                 (int32_t) (mut_attr_val[i] + norm(0, sigma)) & ((1 << COEF_RES) -1);
             /* mut_nodes[i]->weights[mut_attr[i]] = (int16_t) (weight_temp ^ (1 << mut_bit[i])); */

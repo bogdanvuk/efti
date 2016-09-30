@@ -57,7 +57,8 @@ tree_node* tree_create()
 //	xil_printf("Malloc %x\n\r", (uint32_t) root);
 	root->left = NULL;
 	root->right = NULL;
-	root->parent = NULL;
+  root->parent = NULL;
+  root->to_bottom = 1;
 
 	return root;
 }
