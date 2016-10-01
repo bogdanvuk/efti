@@ -22,6 +22,8 @@
 #define MAX_ITERATIONS            50000
 #define SEED                      29
 
+void sgenrand(unsigned long seed);
+
 Efti_Conf_t efti_config = {
     MAX_ITERATIONS,	// max_iterations
     0.5,          // topology_mutation_rate;
@@ -75,6 +77,7 @@ int crossvalidation()
 
 
     efti_init();
+    sgenrand(SEED);
 
     efti_printf("$efti_config:max_iterations=%d,topology_mutation_rate=%e,"
                 "topo_mutation_rate_raise_due_to_stagnation_step=%e,"

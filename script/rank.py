@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import glob
 import os
+import math
 import json
 import csv
 import numpy as np
@@ -58,7 +59,7 @@ def natural_key(string_):
     """See http://www.codinghorror.com/blog/archives/001018.html"""
     return [int(s) if s.isdigit() else s for s in re.split(r'(\d+)', string_)]
 
-def dump_table_csv(fn, table, cvs, variance=False, sort_by_desc=True):
+def dump_table_csv(fn, table, cvs, horizontal_splits=1, variance=False, sort_by_desc=True):
     with open(fn, 'w', newline='') as csvfile:
         csvwriter = csv.writer(csvfile, delimiter=',',
                                quotechar='"', quoting=csv.QUOTE_MINIMAL)
@@ -68,7 +69,11 @@ def dump_table_csv(fn, table, cvs, variance=False, sort_by_desc=True):
         else:
             cvs_sort = cvs
 
-        csvwriter.writerow(['Dataset'] + [cvs[c]['desc'] for c in cvs_sort])
+        head_row = ['Dataset'] + [cvs[c]['desc'] for c in cvs_sort]
+        head_row *= horizontal_splits
+        csvwriter.writerow(head_row)
+
+        linear_rows = []
 
         for d,res in iter(sorted(table.items())):
             row = [d]
@@ -88,7 +93,24 @@ def dump_table_csv(fn, table, cvs, variance=False, sort_by_desc=True):
                 else:
                     row += ["-"]
 
-            csvwriter.writerow(row)
+            linear_rows.append(row)
+
+        if horizontal_splits == 1:
+            rows = linear_rows
+        else:
+            height = math.ceil(len(linear_rows)/horizontal_splits);
+            rows = []
+            for h in range(height):
+                row = []
+                for s in range(horizontal_splits):
+                    ielem = s*height + h
+                    if ielem < len(linear_rows):
+                        row.extend(linear_rows[ielem])
+
+                rows.append(row)
+
+        for r in rows:
+            csvwriter.writerow(r)
 
 def derive_relative_table(table):
     table_rel = {}

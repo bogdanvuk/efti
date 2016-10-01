@@ -1,6 +1,6 @@
 /********************************************************************************************************************** 
  *  UCI Dataset
- *  Info on https://archive.ics.uci.edu/ml/datasets/Waveform+Database+Generator+(Version+2).
+ *  Info on https://archive.ics.uci.edu/ml/datasets/Waveform+Database+Generator+(Version+1).
  **********************************************************************************************************************/
 #include <stdint.h>
 #include "dataset.h"
