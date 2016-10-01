@@ -16,8 +16,6 @@
 #include <getopt.h>
 #include "crossvalid.h"
 
-#define CROSSVALIDS_NUM           5
-#define EFTI_CROSSVALIDATION_RUNS 5
 #define ENSEMBLE_SIZE_MAX         32
 #define MAX_ITERATIONS            50000
 #define SEED                      29
@@ -38,6 +36,8 @@ Efti_Conf_t efti_config = {
     0,              // use_impurity_topo_mut;
     0,              // use_impurity_weight_mut;
     1,              // ensemble_size
+    5,              // runs
+    5,              // folds
     NULL            // dataset_list
 };
 
@@ -59,8 +59,8 @@ int load_dataset_to_efti(T_Dataset* ds, int* perm, int start, int end, int ex_st
 
 int crossvalidation()
 {
-    uint32_t i, j, k, n, e;
-    tree_node* dt[ENSEMBLE_SIZE_MAX];
+    int i, k, n, e;
+    DT_t* dt[ENSEMBLE_SIZE_MAX];
     float fitness;
     float avg_fit;
     float avg_size;
@@ -101,28 +101,27 @@ int crossvalidation()
                 SEED
         );
 
-    cv_conf = crossvalid_init(efti_config.dataset_selection, efti_config.ensemble_size, SEED, CROSSVALIDS_NUM, EFTI_CROSSVALIDATION_RUNS);
-    
+    cv_conf = crossvalid_init(efti_config.dataset_selection, efti_config.ensemble_size, SEED, efti_config.folds, efti_config.runs);
+
     for (i = 0; i < cv_conf->datasets_num; i++)
     {
-        for (n=0; n < EFTI_CROSSVALIDATION_RUNS; n++)
+        for (n=0; n < efti_config.runs; n++)
         {
 
-            for (k = 0; k < CROSSVALIDS_NUM; k++)
+            for (k = 0; k < efti_config.folds; k++)
             {
                 avg_fit = 0;
                 avg_size = 0;
                 for (e = 0; e < efti_config.ensemble_size; e++)
                 {
                     cv_conf = crossvalid_next_conf();
-                
                     efti_reset(&efti_config, cv_conf->dataset);
                     train_num = load_dataset_to_efti(cv_conf->dataset, cv_conf->perm,
                                                      cv_conf->chunk_start, cv_conf->chunk_end,
                                                      cv_conf->fold_start, cv_conf->fold_start + cv_conf->fold_chunk_size);
-                    dt[e] = efti(&fitness, &leaves, &nonleaves, &t_hb, &cv_conf->seed);
-                    avg_fit += fitness;
-                    avg_size += nonleaves;
+                    dt[e] = efti(&t_hb, &cv_conf->seed);
+                    avg_fit += dt[e]->fit;
+                    avg_size += dt[e]->nonleaves_cnt;
                 }
 
 #if EFTI_PROFILING == 0
@@ -133,7 +132,7 @@ int crossvalidation()
                 accuracy =  ensemble_eval(dt, efti_config.ensemble_size);
                 efti_printf("$cv_pc_run:dataset=\"%s\",run=%d,id=%d,train_range=(%d,%d),"
                             "train_cnt=%d,test_range=(%d,%d),test_cnt=%d,fitness=%f,accuracy=%f,"
-                            "leaves=%d,nonleaves=%f,time=%f,ensemble_size=%d\n",
+                            "leaves=%d,depth=%d,nonleaves=%f,time=%f,ensemble_size=%d\n",
                             cv_conf->dataset->name,
                             n,
                             k,
@@ -145,7 +144,8 @@ int crossvalidation()
                             cv_conf->fold_chunk_size,
                             avg_fit/efti_config.ensemble_size,
                             accuracy,
-                            leaves,
+                            dt[0]->leaves_cnt,
+                            dt[0]->depth,
                             avg_size/efti_config.ensemble_size,
                             t_hb,
                             efti_config.ensemble_size
@@ -154,7 +154,7 @@ int crossvalidation()
                 /* return 0; */
                 for (e = 0; e < efti_config.ensemble_size; e++)
                 {
-                    tree_delete_node(dt[e]);
+                    dt_free(dt[e]);
                 }
             }
         }
@@ -192,11 +192,13 @@ int main(int argc, char *argv[]) {
         {"impurity_weightmut",  optional_argument, 0,  'b' },
         {"ensemble_size",  optional_argument, 0,  'e' },
         {"dataset_selection",  optional_argument, 0,  'd' },
+        {"runs",  optional_argument, 0,  'n' },
+        {"folds",  optional_argument, 0,  'f' },
         {0,           0,                 0,  0   }
     };
 
     int long_index =0;
-    while ((opt = getopt_long(argc, argv,"m::t::w::s::x::y::z::r::o::i::a::b::d::",
+    while ((opt = getopt_long(argc, argv,"n::f::m::t::w::s::x::y::z::r::o::i::a::b::d::",
                               long_options, &long_index )) != -1) {
         switch (opt) {
         case 'm' : efti_config.max_iterations = atoi(optarg);
@@ -224,6 +226,10 @@ int main(int argc, char *argv[]) {
         case 'b' : efti_config.use_impurity_weight_mut = atof(optarg);
             break;
         case 'e' : efti_config.ensemble_size = atoi(optarg);
+            break;
+        case 'n' : efti_config.runs = atoi(optarg);
+            break;
+        case 'f' : efti_config.folds = atoi(optarg);
             break;
         case 'd' : efti_config.dataset_selection = optarg;
             efti_printf("Optarg: %s\n", optarg);
