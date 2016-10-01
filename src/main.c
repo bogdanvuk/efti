@@ -17,9 +17,9 @@
 #include "crossvalid.h"
 
 #define CROSSVALIDS_NUM           5
-#define EFTI_CROSSVALIDATION_RUNS 1
+#define EFTI_CROSSVALIDATION_RUNS 5
 #define ENSEMBLE_SIZE_MAX         32
-#define MAX_ITERATIONS            10
+#define MAX_ITERATIONS            50000
 #define SEED                      29
 
 Efti_Conf_t efti_config = {
