@@ -639,12 +639,19 @@ tree_node* find_dt_leaf_for_inst(tree_node* dt, int32_t attributes[], int32_t in
                 cur_node = cur_node->left;
             }
 #if (DELTA_CLASSIFICATION == 1)
-                path_maybe_merged_back = save_path_change_temp(cur_node, depth, inst_id, res, last_classification);
+
+            /* path_maybe_merged_back = save_path_change_temp(cur_node, depth, inst_id, res, last_classification); */
                 // Watch for orphan subtrees that are still listed in saved paths
-                if ((cur_node_mutated) && is_child_of(prev_node, cur_node)) {
-                    path_diverged = path_maybe_merged_back;
+            if ((cur_node_mutated) && is_child_of(prev_node, cur_node)) {
+                if (cur_node == last_classification->path[depth]) {
+                    path_diverged = 0;
                 }
+            }
 #endif
+        }
+
+        if (total_recalc_all) {
+            apply_single_path_change(last_classification, depth, res, cur_node);
         }
 
         depth++;
@@ -653,6 +660,13 @@ tree_node* find_dt_leaf_for_inst(tree_node* dt, int32_t attributes[], int32_t in
     }
 
     return cur_node;
+}
+
+void recalculate_path(tree_node* dt) {
+    for (uint32_t i = 0 ; i < inst_cnt; i++)
+    {
+        find_dt_leaf_for_inst(dt, instances[i], i, 1);
+    }
 }
 
 #if EFTI_HW == 1
@@ -1065,6 +1079,7 @@ tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt,
 #endif
 
     fitness_best = fitness_cur = fitness_eval(dt_cur, 1);
+    /* recalculate_path(dt_cur); */
     stagnation_iter = 0;
     returned_to_best_iter = 0;
     temp_mut_hang_tree = NULL;
@@ -1261,7 +1276,8 @@ tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt,
 //#if ((EFTI_HW == 1) && (EFTI_SW == 0))
 //			hw_apply_mutation(mut_nodes, mut_attr, mut_bit, weights_mutation_cnt);
 //#endif
-            apply_path_changes();
+            /* apply_path_changes(); */
+            recalculate_path(dt_cur);
             fitness_cur = fitness_new;
             delete_trimmed_subtree(topology_mutated, temp_mut_hang_tree, topo_mut_node);
             if ((fitness_cur - fitness_best) > 1e-6)
@@ -1325,7 +1341,8 @@ tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt,
                 efti_printf("SP: i=%d\n\r", current_iter);
 #endif
                 delete_trimmed_subtree(topology_mutated, temp_mut_hang_tree, topo_mut_node);
-                apply_path_changes();
+                /* apply_path_changes(); */
+                recalculate_path(dt_cur);
                 fitness_cur = fitness_new;
             }
             else //We failed to advance in fitness :(

@@ -11,7 +11,7 @@ $(shell mkdir -p $(DEPDIR) >/dev/null)
 DEPFLAGS = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.Td
 POSTCOMPILE = mv -f $(DEPDIR)/$*.Td $(DEPDIR)/$*.d
 
-rel: CXXFLAGS += -Ofast
+rel: CXXFLAGS += -Ofast -DNDEBUG
 rel: app
 
 dbg:   CXXFLAGS += -g3
