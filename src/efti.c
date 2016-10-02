@@ -622,9 +622,11 @@ tree_node* find_dt_leaf_for_inst(tree_node* dt, int32_t attributes[], int32_t in
 #endif
         }
 
+#if (DELTA_CLASSIFICATION == 1)
         if (total_recalc_all) {
             apply_single_path_change(last_classification, depth, res, cur_node);
         }
+#endif
 
         depth++;
         total_nodes_traversed++;
@@ -1075,7 +1077,9 @@ float selection(float fit, DT_t* dt_mut, DT_t* dt_best) {
     if ((dt_mut->fit - fit) > 1e-6)
     {
         stagnation_iter = 0;
+#if (DELTA_CLASSIFICATION == 1)
         recalculate_path(dt_mut);
+#endif
         delete_trimmed_subtree(topology_mutated, temp_mut_hang_tree, topo_mut_node);
         if ((dt_mut->fit - dt_best->fit) > 1e-6)
         {
@@ -1127,7 +1131,9 @@ float selection(float fit, DT_t* dt_mut, DT_t* dt_best) {
 #endif
             delete_trimmed_subtree(topology_mutated, temp_mut_hang_tree, topo_mut_node);
             /* apply_path_changes(); */
+#if (DELTA_CLASSIFICATION == 1)
             recalculate_path(dt_mut);
+#endif
         }
         else //We failed to advance in fitness :(
         {
@@ -1223,13 +1229,13 @@ DT_t* efti(float* t_hb, unsigned int *seed)
 #endif
 
     extract_hierarcy(&dt_cur);
-    dt_copy(&dt_cur, &dt_best);
 
 #if (EFTI_HW == 1)
     hw_set_whole_tree(dt_cur);
 #endif
 
     fitness_eval(&dt_cur, 1);
+    dt_copy(&dt_cur, &dt_best);
     /* recalculate_path(dt_cur); */
     stagnation_iter = 0;
     returned_to_best_iter = 0;
