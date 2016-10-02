@@ -882,7 +882,7 @@ tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt,
     /* char fn[512]; */
     /* char* fn_fmt = "/data/projects/rst/examples/doktorat/source/images/efti_overview_dts/json/%d.js"; */
 
-    uint32_t exec_time = timing_get();
+    struct timeval exec_time = timing_get();
 
     seedp = seed;
 #if EFTI_HW == 1
@@ -1065,7 +1065,6 @@ tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt,
                 }
             }
 
-	    // uint32_t attr_sel = rand_r(seedp) % (attr_cnt + 1);
             if (rand_r(seedp) % ((int) log2(attr_cnt) + 1))
             {
                 mut_attr[i] = rand_r(seedp) % attr_cnt;
@@ -1237,7 +1236,7 @@ tree_node* efti(float* fitness, uint32_t* dt_leaves_cnt,
 #endif
     assign_classes(dt_best);
 
-    *t_hb = timing_tick2sec(timing_get() - exec_time);
+    *t_hb = timing_tick2sec(exec_time);
 
     *fitness = fitness_best;
     *dt_leaves_cnt = leaves_cnt;
