@@ -656,32 +656,49 @@ void hw_start(uint32_t get_classes)
 void find_node_distribution(DT_t* dt, uint32_t recalc_all)
 {
     unsigned i;
+    int16_t res;
 
     changed_nodes_num = 0;
-    for (i = 0 ; i < inst_cnt; i++)
-    {
-        uint32_t node;
+    if (dt->depth == 1) {
+        for (i = 0 ; i < inst_cnt; i++)
+        {
+            uint32_t categ = categories[i];
+            res = evaluate_node_test(dt->root->weights, instances[i], attr_cnt) >> ATTRIBUTE_RES >> DT_ADDER_TREE_DEPTH;
+
+            if (res >= dt->root->weights[NUM_ATTRIBUTES])
+            {
+                node_categories_distrib[1][categ]++;
+            }
+            else
+            {
+                node_categories_distrib[2][categ]++;
+            }
+        }
+    } else {
+        for (i = 0 ; i < inst_cnt; i++)
+        {
+            uint32_t node;
 
 #if (EFTI_SW == 1)
 
-        node = find_dt_leaf_for_inst(dt->root, instances[i], i, recalc_all)->id;
+            node = find_dt_leaf_for_inst(dt->root, instances[i], i, recalc_all)->id;
 #if (EFTI_HW_SW_FITNESS == 1)
-        HbAssert(node == (*rxBuf++));
+            HbAssert(node == (*rxBuf++));
 #endif
 #else
-        node_id = (*rxBuf++);
+            node_id = (*rxBuf++);
 #endif
-        uint32_t categ = categories[i];
+            uint32_t categ = categories[i];
 
-        assert(node <= LEAVES_MAX);
-        assert(categ <= categ_max);
-        node_categories_distrib[node][categ]++;
+            assert(node <= LEAVES_MAX);
+            assert(categ <= categ_max);
+            node_categories_distrib[node][categ]++;
 
-        /* if (current_iter == 12) { */
-        /*     efti_printf("Classify %d into %d\n", i, node); */
-        /* } */
+            /* if (current_iter == 12) { */
+            /*     efti_printf("Classify %d into %d\n", i, node); */
+            /* } */
+        }
     }
-
 }
 
 float ensemble_eval(DT_t* dt[], int ensemble_size) {
@@ -1263,13 +1280,13 @@ DT_t* efti(float* t_hb)
 #if (DELTA_CLASSIFICATION == 1)
         if (!delta_on) {
             if (dt_cur.depth >= DELTA_ON_DEPTH_THR) {
-                /* efti_printf("DELTA ON, depth: %d\n", dt_cur.depth); */
+                efti_printf("DELTA ON, depth: %d\n", dt_cur.depth);
                 delta_on = 1;
                 recalculate_path(&dt_cur);
             }
         } else {
             if (dt_cur.depth <= DELTA_OFF_DEPTH_THR) {
-                /* efti_printf("DELTA OFF, depth: %d\n", dt_cur.depth); */
+                efti_printf("DELTA OFF, depth: %d\n", dt_cur.depth);
                 delta_on = 0;
             }
         }
