@@ -161,6 +161,7 @@ uint32_t current_iter;
 uint32_t returned_to_best_iter;
 float fitness_best;
 uint32_t stagnation_iter;
+uint32_t delta_on;
 
 uint32_t node_hierarchy_cnt[MAX_TREE_DEPTH];
 //Enumeration of leaves starts from 1, so it is cheaper to ignore the first
@@ -528,7 +529,7 @@ tree_node* find_dt_leaf_for_inst(tree_node* dt, int32_t attributes[], int32_t in
     int64_t res;
     uint_fast16_t j;
 #if (DELTA_CLASSIFICATION == 1)
-    int path_diverged = total_recalc_all;
+    int path_diverged = total_recalc_all | (!delta_on);
 #else
     int path_diverged = 1;
 #endif
@@ -575,9 +576,11 @@ tree_node* find_dt_leaf_for_inst(tree_node* dt, int32_t attributes[], int32_t in
                             res -= mut_attr_val[j]*attributes[mut_attr[j]];
                             res += cur_node->weights[mut_attr[j]] * attributes[mut_attr[j]];
                         }
-                        assert(res == evaluate_node_test(cur_node->weights, attributes, attr_cnt));
                     }
                 }
+
+                if (cur_node_mutated)
+                    assert(res == evaluate_node_test(cur_node->weights, attributes, attr_cnt));
             }
 
             if (cur_node_mutated || cur_node_manipulated) {
@@ -614,7 +617,7 @@ tree_node* find_dt_leaf_for_inst(tree_node* dt, int32_t attributes[], int32_t in
 
             /* path_maybe_merged_back = save_path_change_temp(cur_node, depth, inst_id, res, last_classification); */
                 // Watch for orphan subtrees that are still listed in saved paths
-            if ((cur_node_mutated) && is_child_of(prev_node, cur_node)) {
+            if ((delta_on) && (cur_node_mutated) && is_child_of(prev_node, cur_node)) {
                 if (cur_node == last_classification->path[depth]) {
                     path_diverged = 0;
                 }
@@ -623,7 +626,7 @@ tree_node* find_dt_leaf_for_inst(tree_node* dt, int32_t attributes[], int32_t in
         }
 
 #if (DELTA_CLASSIFICATION == 1)
-        if (total_recalc_all) {
+        if (total_recalc_all && delta_on) {
             apply_single_path_change(last_classification, depth, res, cur_node);
         }
 #endif
@@ -998,32 +1001,43 @@ void mutation(DT_t* dt) {
 
     for (uint_fast16_t i = 0; i < weights_mutation_cnt; i++)
     {
-        if (!efti_conf->use_impurity_weight_mut) {
-            mut_nodes[i] = dt->nonleaves[rand_imax(dt->nonleaves_cnt)];
-        } else {
-            float tot_node_impurity = 0;
-            for (uint_fast16_t j = 0; j < dt->nonleaves_cnt; j++) {
-                tot_node_impurity += dt->nonleaves[j]->impurity;
+        int unique_mutation = 0;
+        while (!unique_mutation) {
+            if (!efti_conf->use_impurity_weight_mut) {
+                mut_nodes[i] = dt->nonleaves[rand_imax(dt->nonleaves_cnt)];
+            } else {
+                float tot_node_impurity = 0;
+                for (uint_fast16_t j = 0; j < dt->nonleaves_cnt; j++) {
+                    tot_node_impurity += dt->nonleaves[j]->impurity;
+                }
+
+                float rand_scaled = (float) rand_norm() * tot_node_impurity;
+
+                for (uint_fast16_t j = 0; j < dt->nonleaves_cnt; j++) {
+                    rand_scaled -= dt->nonleaves[j]->impurity;
+                    if (rand_scaled <= 0) {
+                        mut_nodes[i] = dt->nonleaves[j];
+                        break;
+                    }
+                }
             }
 
-            float rand_scaled = (float) rand_norm() * tot_node_impurity;
+            if (rand_norm() > 0.3)
+            {
+                mut_attr[i] = rand_imax(attr_cnt);
+            }
+            else
+            {
+                mut_attr[i] = NUM_ATTRIBUTES;
+            }
 
-            for (uint_fast16_t j = 0; j < dt->nonleaves_cnt; j++) {
-                rand_scaled -= dt->nonleaves[j]->impurity;
-                if (rand_scaled <= 0) {
-                    mut_nodes[i] = dt->nonleaves[j];
+            unique_mutation = 1;
+            for (uint_fast16_t j = 0; j < i; j++) {
+                if ((mut_nodes[j] == mut_nodes[i]) && (mut_attr[j] == mut_attr[i])) {
+                    unique_mutation = 0;
                     break;
                 }
             }
-        }
-
-        if (rand_norm() > 0.3)
-        {
-            mut_attr[i] = rand_imax(attr_cnt);
-        }
-        else
-        {
-            mut_attr[i] = NUM_ATTRIBUTES;
         }
 
         mut_bit[i] = rand_imax(COEF_RES);
@@ -1078,7 +1092,7 @@ float selection(float fit, DT_t* dt_mut, DT_t* dt_best) {
     {
         stagnation_iter = 0;
 #if (DELTA_CLASSIFICATION == 1)
-        recalculate_path(dt_mut);
+        if (delta_on) recalculate_path(dt_mut);
 #endif
         delete_trimmed_subtree(topology_mutated, temp_mut_hang_tree, topo_mut_node);
         if ((dt_mut->fit - dt_best->fit) > 1e-6)
@@ -1132,7 +1146,7 @@ float selection(float fit, DT_t* dt_mut, DT_t* dt_best) {
             delete_trimmed_subtree(topology_mutated, temp_mut_hang_tree, topo_mut_node);
             /* apply_path_changes(); */
 #if (DELTA_CLASSIFICATION == 1)
-            recalculate_path(dt_mut);
+            if (delta_on) recalculate_path(dt_mut);
 #endif
         }
         else //We failed to advance in fitness :(
@@ -1211,7 +1225,7 @@ DT_t* efti(float* t_hb, unsigned int *seed)
     /* char fn[512]; */
     /* char* fn_fmt = "/data/projects/rst/examples/doktorat/source/images/efti_overview_dts/json/%d.js"; */
 
-    uint32_t exec_time = timing_get();
+    struct timeval exec_time = timing_get();
 
     seedp = seed;
 #if EFTI_HW == 1
@@ -1234,7 +1248,8 @@ DT_t* efti(float* t_hb, unsigned int *seed)
     hw_set_whole_tree(dt_cur);
 #endif
 
-    fitness_eval(&dt_cur, 1);
+    delta_on = 0;
+    fitness_eval(&dt_cur, delta_on);
     dt_copy(&dt_cur, &dt_best);
     /* recalculate_path(dt_cur); */
     stagnation_iter = 0;
@@ -1258,6 +1273,15 @@ DT_t* efti(float* t_hb, unsigned int *seed)
         fit = dt_cur.fit;
         fitness_eval(&dt_cur, 0);
         selection(fit, &dt_cur, &dt_best);
+#if (DELTA_CLASSIFICATION == 1)
+        if (dt_cur.depth > DELTA_ON_DEPTH_THR) {
+            efti_printf("DELTA ON\n");
+            delta_on = 1;
+            recalculate_path(&dt_cur);
+        } else if (dt_cur.depth > DELTA_OFF_DEPTH_THR) {
+            delta_on = 0;
+        }
+#endif
     }
 
     dt_free(&dt_cur);
@@ -1265,7 +1289,7 @@ DT_t* efti(float* t_hb, unsigned int *seed)
     hw_set_whole_tree(dt_best);
 #endif
 
-    *t_hb = timing_tick2sec(timing_get() - exec_time);
+    *t_hb = timing_tick2sec(exec_time);
 
     return &dt_best;
 }

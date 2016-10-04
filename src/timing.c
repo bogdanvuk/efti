@@ -252,9 +252,12 @@ float timing_tick2sec(uint32_t id, uint32_t ticks)
 #else
 
 #include <time.h>
+#include <sys/time.h>
+#include <sys/resource.h>
 
 clock_t ttc[3];
 uint32_t ttc_prescaler[3];
+struct rusage usage;
 
 int timing_init(uint32_t id, uint32_t interval, uint32_t prescaler)
 {
@@ -284,15 +287,21 @@ void timing_close(uint32_t id)
 
 }
 
-uint32_t timing_get()
+struct timeval timing_get()
 {
-	return clock();
+    getrusage(RUSAGE_SELF, &usage);
+    return usage.ru_utime;
+  /* return clock(); */
 //	return clock() - ttc[id];
 }
 
-float timing_tick2sec(uint32_t ticks)
+float timing_tick2sec(struct timeval start)
 {
-	return (float) ticks / CLOCKS_PER_SEC;
+    struct timeval end;
+    getrusage(RUSAGE_SELF, &usage);
+    end = usage.ru_utime;
+    return end.tv_sec - start.tv_sec + (((float) end.tv_usec) - ((float) start.tv_usec))/1e6;
+  /* return (float) ticks / CLOCKS_PER_SEC; */
 }
 
 
