@@ -1274,12 +1274,17 @@ DT_t* efti(float* t_hb, unsigned int *seed)
         fitness_eval(&dt_cur, 0);
         selection(fit, &dt_cur, &dt_best);
 #if (DELTA_CLASSIFICATION == 1)
-        if (dt_cur.depth > DELTA_ON_DEPTH_THR) {
-            efti_printf("DELTA ON\n");
-            delta_on = 1;
-            recalculate_path(&dt_cur);
-        } else if (dt_cur.depth > DELTA_OFF_DEPTH_THR) {
-            delta_on = 0;
+        if (!delta_on) {
+            if (dt_cur.depth >= DELTA_ON_DEPTH_THR) {
+                /* efti_printf("DELTA ON, depth: %d\n", dt_cur.depth); */
+                delta_on = 1;
+                recalculate_path(&dt_cur);
+            }
+        } else {
+            if (dt_cur.depth <= DELTA_OFF_DEPTH_THR) {
+                /* efti_printf("DELTA OFF, depth: %d\n", dt_cur.depth); */
+                delta_on = 0;
+            }
         }
 #endif
     }
