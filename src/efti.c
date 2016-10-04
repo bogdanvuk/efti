@@ -1280,13 +1280,13 @@ DT_t* efti(float* t_hb)
 #if (DELTA_CLASSIFICATION == 1)
         if (!delta_on) {
             if (dt_cur.depth >= DELTA_ON_DEPTH_THR) {
-                efti_printf("DELTA ON, depth: %d\n", dt_cur.depth);
+                /* efti_printf("DELTA ON, depth: %d\n", dt_cur.depth); */
                 delta_on = 1;
                 recalculate_path(&dt_cur);
             }
         } else {
             if (dt_cur.depth <= DELTA_OFF_DEPTH_THR) {
-                efti_printf("DELTA OFF, depth: %d\n", dt_cur.depth);
+                /* efti_printf("DELTA OFF, depth: %d\n", dt_cur.depth); */
                 delta_on = 0;
             }
         }
