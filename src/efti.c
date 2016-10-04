@@ -1,6 +1,6 @@
-#define CUSTOM_RAND 0
 
 #include "efti_conf.h"
+#include "rand.h"
 #include <assert.h>
 #include "hw_config.h"
 #include "efti.h"
@@ -13,17 +13,6 @@
 #include "dataset.h"
 /* #include "dt2js.h" */
 #include <stdio.h>
-
-#if CUSTOM_RAND == 0
-#include <stdlib.h>
-#define rand_norm() ((rand_r(seedp) % 10000) / 10000.0)
-#define rand_imax(m) ((uint64_t)(rand_r(seedp) % (m)))
-#else
-double genrand();
-#define rand() ((uint64_t)(genrand() * RAND_MAX))
-#define rand_imax(m) ((uint64_t)(genrand() * (m)))
-#define rand_norm() genrand()
-#endif
 
 #if (DT_USE_LOOP_UNFOLD == 1)
 #include "loop_unfold.h"
@@ -110,7 +99,6 @@ const Efti_Conf_t *efti_conf;
 #define NONLEAVES_MAX			NUM_NODES
 #define MAX_WEIGHT_MUTATIONS	NUM_NODES
 
-unsigned int *seedp;
 uint32_t attr_cnt;
 uint32_t inst_cnt;
 uint32_t categ_max;
@@ -1217,7 +1205,7 @@ void dt_init(DT_t* dt) {
     dt->oversize = 0;
 }
 
-DT_t* efti(float* t_hb, unsigned int *seed)
+DT_t* efti(float* t_hb)
 {
 
     float fit;
@@ -1227,7 +1215,6 @@ DT_t* efti(float* t_hb, unsigned int *seed)
 
     struct timeval exec_time = timing_get();
 
-    seedp = seed;
 #if EFTI_HW == 1
     Xil_Out32(DT_HW_INST_NUM_ADDR, inst_cnt - 1);
 #endif

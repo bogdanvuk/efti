@@ -1,5 +1,5 @@
-#ifndef __HEREBOY_H
-#define __HEREBOY_H
+#ifndef __EFTI_H
+#define __EFTI_H
 
 #include <math.h>
 #include <stdint.h>
@@ -12,6 +12,7 @@
 #define DELTA_ON_DEPTH_THR      3
 #define DELTA_OFF_DEPTH_THR      1
 #define EFTI_PRINT_DTS          0
+#define CUSTOM_RAND 0
 
 #define DT_USE_LOOP_UNFOLD			1
 #define LEAVES_MAX				NUM_NODES
@@ -53,7 +54,7 @@ void dt_free(DT_t* dt);
 int efti_load_instance(const int32_t* instance, uint_fast16_t category);
 void efti_init();
 void efti_reset(const Efti_Conf_t *conf, T_Dataset* ds);
-DT_t* efti(float* t_hb, unsigned int *seed);
+DT_t* efti(float* t_hb);
 void efti_close();
 float efti_eval(tree_node* dt);
 float ensemble_eval(DT_t* dt[], int ensemble_size);

@@ -4,6 +4,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include "rand.h"
 #include "efti_conf.h"
 #include "efti.h"
 #include "timing.h"
@@ -20,7 +21,6 @@
 #define MAX_ITERATIONS            50000
 #define SEED                      29
 
-void sgenrand(unsigned long seed);
 
 Efti_Conf_t efti_config = {
     MAX_ITERATIONS,	// max_iterations
@@ -61,12 +61,9 @@ int crossvalidation()
 {
     int i, k, n, e;
     DT_t* dt[ENSEMBLE_SIZE_MAX];
-    float fitness;
     float avg_fit;
     float avg_size;
     float accuracy;
-    uint32_t leaves;
-    uint32_t nonleaves;
     float t_hb;
     int train_num;
     Cv_Status_T* cv_conf;
@@ -77,7 +74,7 @@ int crossvalidation()
 
 
     efti_init();
-    sgenrand(SEED);
+    rand_init(SEED);
 
     efti_printf("$efti_config:max_iterations=%d,topology_mutation_rate=%e,"
                 "topo_mutation_rate_raise_due_to_stagnation_step=%e,"
@@ -119,7 +116,7 @@ int crossvalidation()
                     train_num = load_dataset_to_efti(cv_conf->dataset, cv_conf->perm,
                                                      cv_conf->chunk_start, cv_conf->chunk_end,
                                                      cv_conf->fold_start, cv_conf->fold_start + cv_conf->fold_chunk_size);
-                    dt[e] = efti(&t_hb, &cv_conf->seed);
+                    dt[e] = efti(&t_hb);
                     avg_fit += dt[e]->fit;
                     avg_size += dt[e]->nonleaves_cnt;
                 }
