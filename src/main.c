@@ -155,7 +155,7 @@ int crossvalidation()
                     dt_free(dt[e]);
                 }
 
-                return 0;
+                // return 0;
             }
         }
     }
