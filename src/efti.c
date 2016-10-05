@@ -668,11 +668,13 @@ void find_node_distribution(DT_t* dt, uint32_t recalc_all)
 
             if (res >= dt->root->weights[NUM_ATTRIBUTES])
             {
-                node_categories_distrib[1][categ]++;
+                assert(find_dt_leaf_for_inst(dt->root, instances[i], i, 1)->id == 2);
+                node_categories_distrib[2][categ]++;
             }
             else
             {
-                node_categories_distrib[2][categ]++;
+                assert(find_dt_leaf_for_inst(dt->root, instances[i], i, 1)->id == 1);
+                node_categories_distrib[1][categ]++;
             }
         }
     } else {
