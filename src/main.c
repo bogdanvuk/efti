@@ -38,7 +38,8 @@ Efti_Conf_t efti_config = {
     1,              // ensemble_size
     5,              // runs
     5,              // folds
-    NULL            // dataset_list
+    NULL,           // dataset_list
+    SEED            // seed
 };
 
 int load_dataset_to_efti(T_Dataset* ds, int* perm, int start, int end, int ex_start, int ex_end){
@@ -74,7 +75,7 @@ int crossvalidation()
 
 
     efti_init();
-    rand_init(SEED);
+    rand_init(efti_config.seed);
 
     efti_printf("$efti_config:max_iterations=%d,topology_mutation_rate=%e,"
                 "topo_mutation_rate_raise_due_to_stagnation_step=%e,"
@@ -95,7 +96,7 @@ int crossvalidation()
                 efti_config.use_impurity_topo_mut,
                 efti_config.use_impurity_weight_mut,
                 efti_config.ensemble_size,
-                SEED
+                efti_config.seed
         );
 
     cv_conf = crossvalid_init(efti_config.dataset_selection, efti_config.ensemble_size, SEED, efti_config.folds, efti_config.runs);
@@ -153,6 +154,8 @@ int crossvalidation()
                 {
                     dt_free(dt[e]);
                 }
+
+                return 0;
             }
         }
     }
@@ -191,11 +194,12 @@ int main(int argc, char *argv[]) {
         {"dataset_selection",  optional_argument, 0,  'd' },
         {"runs",  optional_argument, 0,  'n' },
         {"folds",  optional_argument, 0,  'f' },
+        {"seed",  optional_argument, 0,  'c' },
         {0,           0,                 0,  0   }
     };
 
     int long_index =0;
-    while ((opt = getopt_long(argc, argv,"n::f::m::t::w::s::x::y::z::r::o::i::a::b::d::",
+    while ((opt = getopt_long(argc, argv,"n::f::m::t::w::s::x::y::z::r::o::i::a::b::c::d::",
                               long_options, &long_index )) != -1) {
         switch (opt) {
         case 'm' : efti_config.max_iterations = atoi(optarg);
@@ -227,6 +231,8 @@ int main(int argc, char *argv[]) {
         case 'n' : efti_config.runs = atoi(optarg);
             break;
         case 'f' : efti_config.folds = atoi(optarg);
+            break;
+        case 'c' : efti_config.seed = atoi(optarg);
             break;
         case 'd' : efti_config.dataset_selection = optarg;
             efti_printf("Optarg: %s\n", optarg);

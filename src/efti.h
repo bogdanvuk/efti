@@ -7,7 +7,7 @@
 #include "dataset.h"
 
 #define EFTI_PRINT_PROGRESS_INTERVAL	100000
-#define EFTI_PRINT_STATS				0
+#define EFTI_PRINT_STATS				1
 #define DELTA_CLASSIFICATION    1
 #define DELTA_ON_DEPTH_THR      3
 #define DELTA_OFF_DEPTH_THR      1
@@ -34,6 +34,7 @@ typedef struct {
     int runs;
     int folds;
     char* dataset_selection;
+    unsigned int seed;
 }Efti_Conf_t;
 
 
