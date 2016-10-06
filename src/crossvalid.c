@@ -256,20 +256,27 @@ Cv_Status_T* crossvalid_next_run()
 Cv_Status_T* crossvalid_next_fold()
 {
     cv_stat.cur_ensemble = 0;
-    cv_stat.cur_cs_fold++;
-    if (cv_stat.cur_cs_fold == cv_stat.folds_num)
-    {
+    if (cv_stat.folds_num > 1) {
+        cv_stat.cur_cs_fold++;
+        if (cv_stat.cur_cs_fold == cv_stat.folds_num)
+        {
+            if (!crossvalid_next_run()) return NULL;
+        }
+
+        cv_stat.fold_chunk_size = (cv_stat.dataset->inst_cnt + cv_stat.folds_num - 1) / cv_stat.folds_num;
+        cv_stat.fold_start = cv_stat.cur_cs_fold*cv_stat.fold_chunk_size;
+        if (cv_stat.cur_cs_fold == (cv_stat.folds_num - 1))
+        {
+            cv_stat.fold_chunk_size -= (cv_stat.fold_chunk_size*cv_stat.folds_num  - cv_stat.dataset->inst_cnt);
+        }
+
+        cv_stat.train_set_size = cv_stat.dataset->inst_cnt - cv_stat.fold_chunk_size;
+    } else {
         if (!crossvalid_next_run()) return NULL;
+        cv_stat.fold_chunk_size = 0;
+        cv_stat.fold_start = 0;
+        cv_stat.train_set_size = cv_stat.dataset->inst_cnt;
     }
-
-    cv_stat.fold_chunk_size = (cv_stat.dataset->inst_cnt + cv_stat.folds_num - 1) / cv_stat.folds_num;
-    cv_stat.fold_start = cv_stat.cur_cs_fold*cv_stat.fold_chunk_size;
-    if (cv_stat.cur_cs_fold == (cv_stat.folds_num - 1))
-    {
-        cv_stat.fold_chunk_size -= (cv_stat.fold_chunk_size*cv_stat.folds_num  - cv_stat.dataset->inst_cnt);
-    }
-
-    cv_stat.train_set_size = cv_stat.dataset->inst_cnt - cv_stat.fold_chunk_size;
 
     return &cv_stat;
 }

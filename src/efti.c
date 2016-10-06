@@ -668,12 +668,12 @@ void find_node_distribution(DT_t* dt, uint32_t recalc_all)
 
             if (res >= dt->root->weights[NUM_ATTRIBUTES])
             {
-                assert(find_dt_leaf_for_inst(dt->root, instances[i], i, 1)->id == 2);
+                /* assert(find_dt_leaf_for_inst(dt->root, instances[i], i, 1)->id == 2); */
                 node_categories_distrib[2][categ]++;
             }
             else
             {
-                assert(find_dt_leaf_for_inst(dt->root, instances[i], i, 1)->id == 1);
+                /* assert(find_dt_leaf_for_inst(dt->root, instances[i], i, 1)->id == 1); */
                 node_categories_distrib[1][categ]++;
             }
         }
@@ -1131,9 +1131,9 @@ float selection(float fit, DT_t* dt_mut, DT_t* dt_best) {
             returned_to_best_iter = current_iter;
 #if (EFTI_PRINT_STATS == 1)
             if (searching) {
-                efti_printf("SAB: i=%d,f=%f,s=%d\n", current_iter, dt_mut->fit, dt_mut->leaves_cnt);
+                efti_printf("$event:name=\"SAB\",iter=%d,fit=%f,size=%d\n", current_iter, dt_mut->fit, dt_mut->leaves_cnt);
             } else {
-                efti_printf("AB: i=%d,f=%f,s=%d\n", current_iter, dt_mut->fit, dt_mut->leaves_cnt);
+                efti_printf("$event:name=\"AB\",iter=%d,fit=%f,size=%d\n", current_iter, dt_mut->fit, dt_mut->leaves_cnt);
             }
 #endif
             searching = 0;
@@ -1141,7 +1141,7 @@ float selection(float fit, DT_t* dt_mut, DT_t* dt_best) {
         else
         {
 #if (EFTI_PRINT_STATS == 1)
-            efti_printf("CB: i=%d,f=%f,s=%d\n", current_iter, dt_mut->fit, dt_mut->leaves_cnt);
+            efti_printf("$event:name=\"CB\",iter=%d,fit=%f,size=%d\n", current_iter, dt_mut->fit, dt_mut->leaves_cnt);
 #endif
         }
     }
@@ -1176,7 +1176,7 @@ float selection(float fit, DT_t* dt_mut, DT_t* dt_best) {
             returned_to_best_iter = current_iter;
             stagnation_iter = 0;
 #if (EFTI_PRINT_STATS == 1)
-            efti_printf("RB: i=%d\n\r", current_iter);
+            efti_printf("$event:name=\"RB\",iter=%d,fit=%f,size=%d\n", current_iter, dt_best->fit, dt_best->leaves_cnt);
 #endif
         }
         /* else if (topology_mutated && (rand_norm() < search_probability)) */
@@ -1188,7 +1188,7 @@ float selection(float fit, DT_t* dt_mut, DT_t* dt_best) {
 //				hw_apply_mutation(mut_nodes, mut_attr, mut_bit, weights_mutation_cnt);
 //#endif
 #if (EFTI_PRINT_STATS == 1)
-            efti_printf("SP: i=%d,f=%f,s=%d\n", current_iter, dt_mut->fit, dt_mut->leaves_cnt);
+            efti_printf("$event:name=\"SP\",iter=%d,fit=%f,size=%d\n", current_iter, dt_mut->fit, dt_mut->leaves_cnt);
             /* efti_printf("SP: i=%d\n\r", current_iter); */
 #endif
             delete_trimmed_subtree(topology_mutated, temp_mut_hang_tree, topo_mut_node);

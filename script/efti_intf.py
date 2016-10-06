@@ -9,7 +9,7 @@ import logging
 
 class EftiCmdBase:
 
-    def __init__(self, fname):
+    def __init__(self, fname=None):
         self.fname = fname
         self.res_raw = {}
 
@@ -29,11 +29,14 @@ class EftiCmdBase:
 
     def __exit__(self, type, value, traceback):
         if self.fname:
+            print("EXITING EftiCmdBase")
             self.dump_res()
             self.t.cancel()
             del self.t
 
     def dump_res(self):
+        self.t.cancel()
+        del self.t
         self.t = threading.Timer(10, self.dump_res)
         self.t.start()
         with open(self.fname, 'w') as outfile:
@@ -106,7 +109,7 @@ def spawn(cmd, path='./efti', params=[], name='w0'):
             except pexpect.EOF:
                 pass
 
-    return None 
+    return None
 
 def spawn_worker(kwargs):
     return spawn(**kwargs)

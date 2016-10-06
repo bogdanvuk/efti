@@ -124,30 +124,34 @@ int crossvalidation()
 
 #if EFTI_PROFILING == 0
 
-                load_dataset_to_efti(cv_conf->dataset, cv_conf->perm,
-                                     cv_conf->fold_start, cv_conf->fold_start + cv_conf->fold_chunk_size,
-                                     0, 0);
-                accuracy =  ensemble_eval(dt, efti_config.ensemble_size);
-                efti_printf("$cv_pc_run:dataset=\"%s\",run=%d,id=%d,train_range=(%d,%d),"
-                            "train_cnt=%d,test_range=(%d,%d),test_cnt=%d,fitness=%f,accuracy=%f,"
-                            "leaves=%d,depth=%d,nonleaves=%f,time=%f,ensemble_size=%d\n",
-                            cv_conf->dataset->name,
-                            n,
-                            k,
-                            cv_conf->chunk_start,
-                            cv_conf->chunk_end,
-                            cv_conf->chunk_size,
-                            cv_conf->fold_start,
-                            cv_conf->fold_start + cv_conf->fold_chunk_size,
-                            cv_conf->fold_chunk_size,
-                            avg_fit/efti_config.ensemble_size,
-                            accuracy,
-                            dt[0]->leaves_cnt,
-                            dt[0]->depth,
-                            avg_size/efti_config.ensemble_size,
-                            t_hb,
-                            efti_config.ensemble_size
-                    );
+                if (cv_conf->fold_chunk_size > 0) {
+                    load_dataset_to_efti(cv_conf->dataset, cv_conf->perm,
+                                         cv_conf->fold_start,
+                                         cv_conf->fold_start + cv_conf->fold_chunk_size,
+                                         0, 0);
+
+                    accuracy =  ensemble_eval(dt, efti_config.ensemble_size);
+                    efti_printf("$cv_pc_run:dataset=\"%s\",run=%d,id=%d,train_range=(%d,%d),"
+                                "train_cnt=%d,test_range=(%d,%d),test_cnt=%d,fitness=%f,accuracy=%f,"
+                                "leaves=%d,depth=%d,nonleaves=%f,time=%f,ensemble_size=%d\n",
+                                cv_conf->dataset->name,
+                                n,
+                                k,
+                                cv_conf->chunk_start,
+                                cv_conf->chunk_end,
+                                cv_conf->chunk_size,
+                                cv_conf->fold_start,
+                                cv_conf->fold_start + cv_conf->fold_chunk_size,
+                                cv_conf->fold_chunk_size,
+                                avg_fit/efti_config.ensemble_size,
+                                accuracy,
+                                dt[0]->leaves_cnt,
+                                dt[0]->depth,
+                                avg_size/efti_config.ensemble_size,
+                                t_hb,
+                                efti_config.ensemble_size
+                        );
+                }
 #endif
                 /* return 0; */
                 for (e = 0; e < efti_config.ensemble_size; e++)
@@ -162,6 +166,7 @@ int crossvalidation()
 
     efti_close();
 
+    efti_printf("EXITING!\n");
     return 0;
 }
 
