@@ -1161,6 +1161,11 @@ float selection(float fit, DT_t* dt_mut, DT_t* dt_best) {
                 efti_conf->search_probability_raise_due_to_stagnation_step *
                 exp(-dist/efti_conf->search_probability);
             break;
+        case SEARCH_EFTI_LOG_METROPOLIS:
+            search_probability = log(stagnation_iter) *
+                efti_conf->search_probability_raise_due_to_stagnation_step *
+                exp(-dist/efti_conf->search_probability);
+            break;
         case SEARCH_HEREBOY:
             search_probability = efti_conf->search_probability *
                 (1 - dt_mut->fit);

@@ -11,14 +11,15 @@ param_def = {
     'max_iter': 500000,
     'ensemble_size': 1,
     'oversize_w': 0.02,
-    # 'dataset_selection': ','.join(sorted(files_all)),
     'search_prob': 0,
-    's_accel_stagn': 5e-5,
-    't_accel_stagn': 0.0,
+    's_accel_stagn': 0,
     'w_accel_stagn': 0.0,
-    'return_prob': 0,
+    't_accel_stagn': 0.0,
     'weight_mut': 0.0,
-    'topo_mut': 0.55
+    's_accel_stagn': 5e-4,
+    'search_prob': 0.05,
+    'search_function': 1,
+    'return_prob': 0.001
 }
 
 #test_partition = [['shuttle'], ['eb'], ['bank'], ['letter', 'cvf', 'seg', 'thy', 'veh', 'psd', 'son', 'pid', 'lym', 'zoo', 'irs'], ['krkopt', 'w40', 'ctg', 'spf', 'wilt', 'sb', 'ion', 'ca', 'vote', 'hrts', 'vene'], ['adult', 'magic', 'nurse', 'wfr', 'w21', 'page', 'vow', 'cmc', 'ger', 'ttt', 'gls', 'bcw', 'liv'], ['pen', 'bch', 'jvow', 'eye', 'mushroom', 'wine', 'sick', 'car', 'hrtc', 'ausc', 'bc', 'spect', 'hep']]

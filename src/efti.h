@@ -20,6 +20,7 @@
 #define SEARCH_NONE 0
 #define SEARCH_EFTI_METROPOLIS 1
 #define SEARCH_HEREBOY 2
+#define SEARCH_EFTI_LOG_METROPOLIS 3
 /* #define SEARCH_EFTI_METROPOLIS 0 */
 
 typedef struct {
