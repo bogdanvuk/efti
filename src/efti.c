@@ -1154,14 +1154,32 @@ float selection(float fit, DT_t* dt_mut, DT_t* dt_best) {
 
         /* search_probability = efti_conf->search_probability * (1 + stagnation_iter*efti_conf->search_probability_raise_due_to_stagnation_step); */
         float dist = (fit - dt_mut->fit)/fit;
+
+        switch (efti_conf->search_function) {
+        case SEARCH_EFTI_METROPOLIS:
+            search_probability = stagnation_iter *
+                efti_conf->search_probability_raise_due_to_stagnation_step *
+                exp(-dist/efti_conf->search_probability);
+            break;
+        case SEARCH_HEREBOY:
+            search_probability = efti_conf->search_probability *
+                (1 - dt_mut->fit);
+            break;
+        default:
+            search_probability = 0;
+            break;
+        }
+        // EFTI Orig
         /* search_probability = efti_conf->search_probability * */
         /*     (1 + stagnation_iter*efti_conf->search_probability_raise_due_to_stagnation_step) * */
-        search_probability = stagnation_iter *
-            efti_conf->search_probability_raise_due_to_stagnation_step *
-            exp(-dist*10);
 
-        float should_return = (rand_norm() < return_to_best_probability);
-        float should_search = (rand_norm() < search_probability);
+        // EFTI Metropolis
+
+        // Reversed Metropolis
+        /* search_probability = exp(-dist/stagnation_iter/efti_conf->search_probability_raise_due_to_stagnation_step); */
+
+        uint_fast16_t should_return = (rand_norm() < return_to_best_probability);
+        uint_fast16_t should_search = (rand_norm() < search_probability);
 
         /* Should we return to the best yet solution since we are wondering without improvement for a long time? */
         if ((searching) && (should_return))
@@ -1180,7 +1198,8 @@ float selection(float fit, DT_t* dt_mut, DT_t* dt_best) {
 #endif
         }
         /* else if (topology_mutated && (rand_norm() < search_probability)) */
-        else if ((!searching) && (should_search))
+        else if (((!searching) || efti_conf->allow_subseq_searches) && (should_search))
+        /* else if (should_search) */
         /* else if (rand_norm() < search_probability) */
         {
             searching = 1;

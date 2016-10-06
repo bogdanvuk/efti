@@ -17,6 +17,11 @@
 #define DT_USE_LOOP_UNFOLD			1
 #define LEAVES_MAX				NUM_NODES
 
+#define SEARCH_NONE 0
+#define SEARCH_EFTI_METROPOLIS 1
+#define SEARCH_HEREBOY 2
+/* #define SEARCH_EFTI_METROPOLIS 0 */
+
 typedef struct {
     unsigned max_iterations;
     float topology_mutation_rate;
@@ -35,6 +40,8 @@ typedef struct {
     int folds;
     char* dataset_selection;
     unsigned int seed;
+    unsigned int search_function;
+    unsigned int allow_subseq_searches;
 }Efti_Conf_t;
 
 

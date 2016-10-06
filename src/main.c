@@ -39,7 +39,9 @@ Efti_Conf_t efti_config = {
     5,              // runs
     5,              // folds
     NULL,           // dataset_list
-    SEED            // seed
+    SEED,           // seed
+    SEARCH_EFTI_METROPOLIS, // search_function
+    1               // allow_subseq_searches
 };
 
 int load_dataset_to_efti(T_Dataset* ds, int* perm, int start, int end, int ex_start, int ex_end){
@@ -82,7 +84,7 @@ int crossvalidation()
                 "weights_mutation_rate=%e,search_probability=%e,search_probability_raise_due_to_stagnation_step=%e,"
                 "weight_mutation_rate_raise_due_to_stagnation_step=%e,return_to_best_prob_iteration_increment=%e,"
                 "complexity_weight=%e,impurity_weight=%e,use_impurity_topo_mut=%d,use_impurity_weight_mut=%d,"
-                "ensemble_size=%d,seed=%d\n",
+                "ensemble_size=%d,seed=%d,search_function=%d,allow_subseq_searches=%d\n",
                 efti_config.max_iterations,
                 efti_config.topology_mutation_rate,
                 efti_config.topo_mutation_rate_raise_due_to_stagnation_step,
@@ -96,7 +98,9 @@ int crossvalidation()
                 efti_config.use_impurity_topo_mut,
                 efti_config.use_impurity_weight_mut,
                 efti_config.ensemble_size,
-                efti_config.seed
+                efti_config.seed,
+                efti_config.search_function,
+                efti_config.allow_subseq_searches
         );
 
     cv_conf = crossvalid_init(efti_config.dataset_selection, efti_config.ensemble_size, SEED, efti_config.folds, efti_config.runs);
@@ -200,11 +204,13 @@ int main(int argc, char *argv[]) {
         {"runs",  optional_argument, 0,  'n' },
         {"folds",  optional_argument, 0,  'f' },
         {"seed",  optional_argument, 0,  'c' },
+        {"search_function",  optional_argument, 0,  'g' },
+        {"allow_subseq_searches",  optional_argument, 0,  'h' },
         {0,           0,                 0,  0   }
     };
 
     int long_index =0;
-    while ((opt = getopt_long(argc, argv,"n::f::m::t::w::s::x::y::z::r::o::i::a::b::c::d::",
+    while ((opt = getopt_long(argc, argv,"n::f::m::t::w::s::x::y::z::r::o::i::a::b::c::d::g::h::",
                               long_options, &long_index )) != -1) {
         switch (opt) {
         case 'm' : efti_config.max_iterations = atoi(optarg);
@@ -238,6 +244,10 @@ int main(int argc, char *argv[]) {
         case 'f' : efti_config.folds = atoi(optarg);
             break;
         case 'c' : efti_config.seed = atoi(optarg);
+            break;
+        case 'g' : efti_config.search_function = atoi(optarg);
+            break;
+        case 'h' : efti_config.allow_subseq_searches = atoi(optarg);
             break;
         case 'd' : efti_config.dataset_selection = optarg;
             efti_printf("Optarg: %s\n", optarg);
