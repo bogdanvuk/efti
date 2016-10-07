@@ -59,7 +59,8 @@ def natural_key(string_):
     """See http://www.codinghorror.com/blog/archives/001018.html"""
     return [int(s) if s.isdigit() else s for s in re.split(r'(\d+)', string_)]
 
-def dump_table_csv(fn, table, cvs, horizontal_splits=1, variance=False, sort_by_desc=True):
+def dump_table_csv(fn, table, cvs, horizontal_splits=1, variance=False, sort_by_desc=True,
+                   head_fmt=r"{}", data_fmt="{0:0.2f}"):
     with open(fn, 'w', newline='') as csvfile:
         csvwriter = csv.writer(csvfile, delimiter=',',
                                quotechar='"', quoting=csv.QUOTE_MINIMAL)
@@ -69,7 +70,7 @@ def dump_table_csv(fn, table, cvs, horizontal_splits=1, variance=False, sort_by_
         else:
             cvs_sort = cvs
 
-        head_row = ['Dataset'] + [cvs[c]['desc'] for c in cvs_sort]
+        head_row = ['Dataset'] + [head_fmt.format(cvs[c]['desc']) for c in cvs_sort]
         head_row *= horizontal_splits
         csvwriter.writerow(head_row)
 
@@ -82,14 +83,10 @@ def dump_table_csv(fn, table, cvs, horizontal_splits=1, variance=False, sort_by_
                 if a in res:
                     try:
                         # If the result is a tuple containing the variance info
-                        val = res[a][0]
+                        row.append(data_fmt.format(res[a][0], res[a][1]))
                     except TypeError:
-                        val = res[a]
+                        row.append(data_fmt.format(res[a]))
 
-                    if variance:
-                        row += ["{0:0.2f} ± {1:0.2f}".format(res[a][0], res[a][1])]
-                    else:
-                        row += ["{0:0.2f}".format(val)]
                 else:
                     row += ["-"]
 

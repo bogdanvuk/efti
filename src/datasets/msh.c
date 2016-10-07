@@ -8652,7 +8652,7 @@ T_Dataset mushroom_dataset = {
     INST_CNT,
     ATTR_CNT,
     CATEG_MAX,
-    "mushroom",
+    "msh",
     (int32_t*) mushroom_instances,
     mushroom_classes
 };

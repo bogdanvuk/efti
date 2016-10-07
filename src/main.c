@@ -103,7 +103,7 @@ int crossvalidation()
                 efti_config.allow_subseq_searches
         );
 
-    cv_conf = crossvalid_init(efti_config.dataset_selection, efti_config.ensemble_size, SEED, efti_config.folds, efti_config.runs);
+    cv_conf = crossvalid_init(efti_config.dataset_selection, efti_config.ensemble_size, efti_config.seed, efti_config.folds, efti_config.runs);
 
     for (i = 0; i < cv_conf->datasets_num; i++)
     {
@@ -157,7 +157,7 @@ int crossvalidation()
                         );
                 }
 #endif
-                /* return 0; */
+                return 0;
                 for (e = 0; e < efti_config.ensemble_size; e++)
                 {
                     dt_free(dt[e]);
@@ -243,7 +243,7 @@ int main(int argc, char *argv[]) {
             break;
         case 'f' : efti_config.folds = atoi(optarg);
             break;
-        case 'c' : efti_config.seed = atoi(optarg);
+        case 'c' : efti_config.seed = atol(optarg);
             break;
         case 'g' : efti_config.search_function = atoi(optarg);
             break;
