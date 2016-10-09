@@ -23,7 +23,7 @@ if __name__ == "__main__":
     # all_ds = dsets_by_size('/data/projects/efti/src/datasets/', lambda x: (x > 200) and (x <=500))
     # all_ds = list_dsets_by_size('/data/projects/efti/src/datasets/', lambda x: (x > 500))
     # all_ds.remove('wine')
-    all_ds = ['adult','bank','bch','cvf','eb','eye','jvow','krkopt','letter','magic','mushroom','nurse','page','pen','shuttle','w21','wfr']
+    all_ds = ['adult','bank','bch','cvf','eb','eye','jvow','krkopt','letter','magic','msh','nurse','page','pen','shuttle','w21','wfr']
     # all_ds =["shuttle"]
     sizes = [1, 5, 9, 17]
     # sizes = [1, 5, 9]

@@ -7,7 +7,7 @@
 #include "dataset.h"
 
 #define EFTI_PRINT_PROGRESS_INTERVAL	100000
-#define EFTI_PRINT_STATS				1
+#define EFTI_PRINT_STATS				0
 #define DELTA_CLASSIFICATION    1
 #define DELTA_ON_DEPTH_THR      3
 #define DELTA_OFF_DEPTH_THR      1
@@ -43,6 +43,7 @@ typedef struct {
     unsigned int seed;
     unsigned int search_function;
     unsigned int allow_subseq_searches;
+    float max_time;
 }Efti_Conf_t;
 
 
@@ -63,7 +64,7 @@ void dt_free(DT_t* dt);
 int efti_load_instance(const int32_t* instance, uint_fast16_t category);
 void efti_init();
 void efti_reset(const Efti_Conf_t *conf, T_Dataset* ds);
-DT_t* efti(float* t_hb);
+DT_t* efti(float* t_hb, uint_fast16_t* iters);
 void efti_close();
 float efti_eval(tree_node* dt);
 float ensemble_eval(DT_t* dt[], int ensemble_size);

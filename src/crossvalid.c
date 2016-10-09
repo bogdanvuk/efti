@@ -51,7 +51,7 @@ extern T_Dataset letter_dataset;
 extern T_Dataset liv_dataset;
 extern T_Dataset lym_dataset;
 extern T_Dataset magic_dataset;
-extern T_Dataset mushroom_dataset;
+extern T_Dataset msh_dataset;
 extern T_Dataset nurse_dataset;
 extern T_Dataset page_dataset;
 extern T_Dataset pen_dataset;
@@ -104,7 +104,7 @@ T_Dataset*	datasets[DATASETS_NUM] = {
   &liv_dataset,
   &lym_dataset,
   &magic_dataset,
-  &mushroom_dataset,
+  &msh_dataset,
   &nurse_dataset,
   &page_dataset,
   &pen_dataset,

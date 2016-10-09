@@ -145,7 +145,7 @@ int32_t mut_attr_val[MAX_WEIGHT_MUTATIONS];
 uint32_t mut_bit[MAX_WEIGHT_MUTATIONS];
 uint32_t mut_bank_val[MAX_WEIGHT_MUTATIONS];
 uint32_t categories[NUM_INST_MAX];
-uint32_t current_iter;
+uint_fast16_t current_iter;
 uint32_t returned_to_best_iter;
 float fitness_best;
 uint32_t stagnation_iter;
@@ -1289,7 +1289,7 @@ void dt_init(DT_t* dt) {
     dt->oversize = 0;
 }
 
-DT_t* efti(float* t_hb)
+DT_t* efti(float* t_hb, uint_fast16_t* iters)
 {
 
     float fit;
@@ -1358,6 +1358,14 @@ DT_t* efti(float* t_hb)
             }
         }
 #endif
+
+        if (efti_conf->max_time != NAN)
+        {
+            if (timing_tick2sec(exec_time) > efti_conf->max_time) {
+                efti_printf("TIME OUT %f %f\n",timing_tick2sec(exec_time),efti_conf->max_time);
+                break;
+            }
+        }
     }
 
     dt_free(&dt_cur);
@@ -1366,6 +1374,7 @@ DT_t* efti(float* t_hb)
 #endif
 
     *t_hb = timing_tick2sec(exec_time);
+    *iters = current_iter;
 
     return &dt_best;
 }

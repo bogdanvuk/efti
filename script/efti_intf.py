@@ -29,7 +29,7 @@ class EftiCmdBase:
 
     def __exit__(self, type, value, traceback):
         if self.fname:
-            print("EXITING EftiCmdBase")
+            # print("EXITING EftiCmdBase")
             self.dump_res()
             self.t.cancel()
             del self.t
@@ -152,7 +152,7 @@ def efti_test(path, tests=[], cmd_cls=EftiCmdBase, threads=0):
 
     if threads == 0:
         for i,t in enumerate(tests):
-            cmd[i] = spawn(cmd[i], path=path, tests=t["conf"])
+            cmd[i] = spawn(cmd[i], path=path, params=t["conf"])
     else:
         logging.info('Using {} threads for {} tests'.format(threads, len(tests)))
         param_set_start = 0

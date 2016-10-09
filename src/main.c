@@ -21,7 +21,6 @@
 #define MAX_ITERATIONS            50000
 #define SEED                      29
 
-
 Efti_Conf_t efti_config = {
     MAX_ITERATIONS,	// max_iterations
     0.5,          // topology_mutation_rate;
@@ -41,7 +40,8 @@ Efti_Conf_t efti_config = {
     NULL,           // dataset_list
     SEED,           // seed
     SEARCH_EFTI_METROPOLIS, // search_function
-    1               // allow_subseq_searches
+    1,               // allow_subseq_searches
+    NAN             // max_time
 };
 
 int load_dataset_to_efti(T_Dataset* ds, int* perm, int start, int end, int ex_start, int ex_end){
@@ -68,6 +68,7 @@ int crossvalidation()
     float avg_size;
     float accuracy;
     float t_hb;
+    uint_fast16_t iters;
     int train_num;
     Cv_Status_T* cv_conf;
 
@@ -81,10 +82,14 @@ int crossvalidation()
 
     efti_printf("$efti_config:max_iterations=%d,topology_mutation_rate=%e,"
                 "topo_mutation_rate_raise_due_to_stagnation_step=%e,"
-                "weights_mutation_rate=%e,search_probability=%e,search_probability_raise_due_to_stagnation_step=%e,"
-                "weight_mutation_rate_raise_due_to_stagnation_step=%e,return_to_best_prob_iteration_increment=%e,"
-                "complexity_weight=%e,impurity_weight=%e,use_impurity_topo_mut=%d,use_impurity_weight_mut=%d,"
-                "ensemble_size=%d,seed=%d,search_function=%d,allow_subseq_searches=%d\n",
+                "weights_mutation_rate=%e,search_probability=%e,"
+                "search_probability_raise_due_to_stagnation_step=%e,"
+                "weight_mutation_rate_raise_due_to_stagnation_step=%e,"
+                "return_to_best_prob_iteration_increment=%e,"
+                "complexity_weight=%e,impurity_weight=%e,use_impurity_topo_mut=%d,"
+                "use_impurity_weight_mut=%d,ensemble_size=%d,seed=%d,"
+                "search_function=%d,allow_subseq_searches=%d,"
+                "max_time=%f\n",
                 efti_config.max_iterations,
                 efti_config.topology_mutation_rate,
                 efti_config.topo_mutation_rate_raise_due_to_stagnation_step,
@@ -100,7 +105,8 @@ int crossvalidation()
                 efti_config.ensemble_size,
                 efti_config.seed,
                 efti_config.search_function,
-                efti_config.allow_subseq_searches
+                efti_config.allow_subseq_searches,
+                efti_config.max_time
         );
 
     cv_conf = crossvalid_init(efti_config.dataset_selection, efti_config.ensemble_size, efti_config.seed, efti_config.folds, efti_config.runs);
@@ -121,7 +127,7 @@ int crossvalidation()
                     train_num = load_dataset_to_efti(cv_conf->dataset, cv_conf->perm,
                                                      cv_conf->chunk_start, cv_conf->chunk_end,
                                                      cv_conf->fold_start, cv_conf->fold_start + cv_conf->fold_chunk_size);
-                    dt[e] = efti(&t_hb);
+                    dt[e] = efti(&t_hb, &iters);
                     avg_fit += dt[e]->fit;
                     avg_size += dt[e]->nonleaves_cnt;
                 }
@@ -137,7 +143,8 @@ int crossvalidation()
                     accuracy =  ensemble_eval(dt, efti_config.ensemble_size);
                     efti_printf("$cv_pc_run:dataset=\"%s\",run=%d,id=%d,train_range=(%d,%d),"
                                 "train_cnt=%d,test_range=(%d,%d),test_cnt=%d,fitness=%f,accuracy=%f,"
-                                "leaves=%d,depth=%d,nonleaves=%f,time=%f,ensemble_size=%d\n",
+                                "leaves=%d,depth=%d,nonleaves=%f,time=%f,ensemble_size=%d,"
+                                "iters=%d\n",
                                 cv_conf->dataset->name,
                                 n,
                                 k,
@@ -153,11 +160,11 @@ int crossvalidation()
                                 dt[0]->depth,
                                 avg_size/efti_config.ensemble_size,
                                 t_hb,
-                                efti_config.ensemble_size
+                                efti_config.ensemble_size,
+                                iters
                         );
                 }
 #endif
-                return 0;
                 for (e = 0; e < efti_config.ensemble_size; e++)
                 {
                     dt_free(dt[e]);
@@ -206,11 +213,12 @@ int main(int argc, char *argv[]) {
         {"seed",  optional_argument, 0,  'c' },
         {"search_function",  optional_argument, 0,  'g' },
         {"allow_subseq_searches",  optional_argument, 0,  'h' },
+        {"max_time",  optional_argument, 0,  'j' },
         {0,           0,                 0,  0   }
     };
 
     int long_index =0;
-    while ((opt = getopt_long(argc, argv,"n::f::m::t::w::s::x::y::z::r::o::i::a::b::c::d::g::h::",
+    while ((opt = getopt_long(argc, argv,"a::b::c::d::e::f::g::h::i::j::o::m::n::r::s::t::w::x::y::z::",
                               long_options, &long_index )) != -1) {
         switch (opt) {
         case 'm' : efti_config.max_iterations = atoi(optarg);
@@ -248,6 +256,8 @@ int main(int argc, char *argv[]) {
         case 'g' : efti_config.search_function = atoi(optarg);
             break;
         case 'h' : efti_config.allow_subseq_searches = atoi(optarg);
+            break;
+        case 'j' : efti_config.max_time = atof(optarg);
             break;
         case 'd' : efti_config.dataset_selection = optarg;
             efti_printf("Optarg: %s\n", optarg);
