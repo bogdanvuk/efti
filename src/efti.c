@@ -905,6 +905,10 @@ void hw_apply_mutation(tree_node* mut_nodes[], uint32_t mut_attr[], uint32_t mut
     }
 }
 
+float sigmoid(float x) {
+    return 1.0/(1.0 + exp(-x));
+}
+
 void mutation(DT_t* dt) {
 
     float topo_mutation_probability;
@@ -914,11 +918,21 @@ void mutation(DT_t* dt) {
     /* topo_mutation_probability = efti_conf->topology_mutation_rate * leaves_cnt; */
 
     /* topo_mutation_probability *= 1 + stagnation_iter*efti_conf->topo_mutation_rate_raise_due_to_stagnation_step; */
-    if (dt->leaves_cnt < categ_max) {
-        topo_mutation_probability = 0.2;
-    } else {
-        topo_mutation_probability = 0.5;
-    }
+
+
+    float k = efti_conf->topo_mutation_rate_raise_due_to_stagnation_step * categ_max;
+    /* topo_mutation_probability = efti_conf->topology_mutation_rate * */
+    /*     sigmoid(dt->leaves_cnt/k - efti_conf->weights_mutation_rate); */
+    topo_mutation_probability = efti_conf->topology_mutation_rate *
+        (1.0 - exp(-(dt->leaves_cnt/k)));
+
+    /* efti_printf("Topo prob: %f", topo_mutation_probability); */
+
+    /* if (dt->leaves_cnt < categ_max) { */
+    /*     topo_mutation_probability = 0.2; */
+    /* } else { */
+    /*     topo_mutation_probability = 0.5; */
+    /* } */
 
     /* topo_mutation_probability = 0.5; */
     if (topo_mutation_probability > rand_norm())
@@ -930,12 +944,12 @@ void mutation(DT_t* dt) {
                 topo_mut_node = NULL;
             }
 
-            double add_chance;
-            if (dt->leaves_cnt < categ_max) {
-                add_chance = 0.3;
-            } else {
-                add_chance = 0.5;
-            }
+            double add_chance = topo_mutation_probability;
+            /* if (dt->leaves_cnt < categ_max) { */
+            /*     add_chance = 0.3; */
+            /* } else { */
+            /*     add_chance = 0.5; */
+            /* } */
 
             /* if (rand_r(seedp) % 2) { */
             if (rand_norm() < add_chance) {

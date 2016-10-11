@@ -117,7 +117,8 @@ def write_csv_table(fn, table, horizontal_splits=1):
 def dump_table_csv(fn, table, cvs, horizontal_splits=1, variance=False, sort_by_desc=True,
                    head_fmt=r"{}", data_fmt="{0:0.2f}"):
 
-    csv_table = prepare_csv_table(table=table, cvs=cvs, head_fmt=head_fmt, data_fmt=data_fmt)
+    csv_table = prepare_csv_table(table=table, cvs=cvs, head_fmt=head_fmt, data_fmt=data_fmt,
+                                  sort_by_desc=sort_by_desc)
     write_csv_table(fn, csv_table, horizontal_splits=horizontal_splits)
 
 def derive_relative_table(table):
