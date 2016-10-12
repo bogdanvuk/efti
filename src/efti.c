@@ -1101,7 +1101,14 @@ void mutation(DT_t* dt) {
 #if (EFTI_SW == 1)
         mut_attr_val[i] = mut_nodes[i]->weights[mut_attr[i]];
         /* mut_nodes[i]->weights[mut_attr[i]] = (int16_t) (mut_attr_val[i] ^ (1 << mut_bit[i])); */
-        double sigma = MAX_ATTR_VAL/5; //mut_nodes[i]->to_bottom;
+        /* double sigma = MAX_ATTR_VAL/5; //mut_nodes[i]->to_bottom; */
+        double sigma;
+        if (mut_nodes[i]->weights[mut_attr[i]] < MAX_ATTR_VAL/10) {
+            sigma = MAX_ATTR_VAL/5;
+        } else {
+            sigma = mut_nodes[i]->weights[mut_attr[i]]*2;
+        }
+        /* double sigma = mut_nodes[i]->weights[mut_attr[i]]*2 + MAX_ATTR_VAL/10; //mut_nodes[i]->to_bottom; */
         double delta = norm(0, sigma);
         if (mut_attr_val[i] + delta >= MAX_ATTR_VAL) {
             mut_nodes[i]->weights[mut_attr[i]] = MAX_ATTR_VAL;
