@@ -1105,10 +1105,10 @@ void mutation(DT_t* dt) {
         double sigma;
         if (abs(mut_nodes[i]->weights[mut_attr[i]]) < MAX_ATTR_VAL/10) {
             sigma = MAX_ATTR_VAL/10;
-        } else if (abs(mut_nodes[i]->weights[mut_attr[i]]) < MAX_ATTR_VAL/2){
+        } else if (abs(mut_nodes[i]->weights[mut_attr[i]]) < MAX_ATTR_VAL/4){
             sigma = abs(mut_nodes[i]->weights[mut_attr[i]]);
         } else {
-            sigma = MAX_ATTR_VAL/2;
+            sigma = MAX_ATTR_VAL/4;
         }
 
         /* double sigma = mut_nodes[i]->weights[mut_attr[i]]*2 + MAX_ATTR_VAL/10; //mut_nodes[i]->to_bottom; */
