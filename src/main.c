@@ -41,7 +41,7 @@ Efti_Conf_t efti_config = {
     SEED,           // seed
     SEARCH_EFTI_METROPOLIS, // search_function
     1,               // allow_subseq_searches
-    NAN             // max_time
+    -1              // max_time
 };
 
 int load_dataset_to_efti(T_Dataset* ds, int* perm, int start, int end, int ex_start, int ex_end){

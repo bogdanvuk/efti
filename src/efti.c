@@ -1383,7 +1383,7 @@ DT_t* efti(float* t_hb, uint_fast16_t* iters)
         }
 #endif
 
-        if (efti_conf->max_time != NAN)
+        if (efti_conf->max_time > 0.0)
         {
             if (timing_tick2sec(exec_time) > efti_conf->max_time) {
                 efti_printf("TIME OUT %f %f\n",timing_tick2sec(exec_time),efti_conf->max_time);
