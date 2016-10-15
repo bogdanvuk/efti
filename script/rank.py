@@ -77,13 +77,13 @@ def split_table_horizontally(table, splits):
 
     return rows
 
-def prepare_csv_table(table, cvs, head_fmt=r"{}", data_fmt="{0:0.2f}", sort_by_desc=True):
+def prepare_csv_table(table, cvs, dstitle='Dataset', head_fmt=r"{}", data_fmt="{0:0.2f}", sort_by_desc=True):
     if sort_by_desc:
         cvs_sort = list(sorted(cvs, key=lambda c: natural_key(cvs[c]['desc'])))
     else:
         cvs_sort = cvs
 
-    head_row = ['Dataset'] + [head_fmt.format(cvs[c]['desc']) for c in cvs_sort]
+    head_row = [dstitle] + [head_fmt.format(cvs[c]['desc']) for c in cvs_sort]
     csv_table = [head_row]
 
     for d,res in iter(sorted(table.items())):
@@ -94,7 +94,7 @@ def prepare_csv_table(table, cvs, head_fmt=r"{}", data_fmt="{0:0.2f}", sort_by_d
                 try:
                     # If the result is a tuple containing the variance info
                     row.append(data_fmt.format(res[a][0], res[a][1]))
-                except TypeError:
+                except (TypeError, IndexError) as e:
                     row.append(data_fmt.format(res[a]))
 
             else:
@@ -115,9 +115,10 @@ def write_csv_table(fn, table, horizontal_splits=1):
             csvwriter.writerow(r)
 
 def dump_table_csv(fn, table, cvs, horizontal_splits=1, variance=False, sort_by_desc=True,
-                   head_fmt=r"{}", data_fmt="{0:0.2f}"):
+                   dstitle='Dataset', head_fmt=r"{}", data_fmt="{0:0.2f}"):
 
-    csv_table = prepare_csv_table(table=table, cvs=cvs, head_fmt=head_fmt, data_fmt=data_fmt,
+    csv_table = prepare_csv_table(table=table, cvs=cvs, dstitle=dstitle,
+                                  head_fmt=head_fmt, data_fmt=data_fmt,
                                   sort_by_desc=sort_by_desc)
     write_csv_table(fn, csv_table, horizontal_splits=horizontal_splits)
 

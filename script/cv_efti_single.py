@@ -14,7 +14,7 @@ param_def = {
     'search_prob': 0.05,
     's_accel_stagn': 5e-5,
     'w_accel_stagn': 0.001,
-    'search_function': 1,
+    'search_function': 0,
     'return_prob': 0.0001,
     'allow_subseq_searches': 1,
     'topo_mut': 0.6,
@@ -45,4 +45,4 @@ def run_tests(tests, threads=0, res_dir='.'):
     return params
 
 if __name__ == "__main__":
-   run_tests(tests_all, threads=7)
+   run_tests(tests_all, threads=4)
