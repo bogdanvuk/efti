@@ -707,11 +707,11 @@ void find_node_distribution(DT_t* dt, uint32_t recalc_all)
 float ensemble_eval(DT_t* dt[], int ensemble_size) {
     uint32_t hits = 0;
     unsigned i, j;
-    uint32_t vote[categ_max+1];
+    uint32_t vote[categ_max];
 
     for (i = 0 ; i < inst_cnt; i++)
     {
-        for (j = 1; j <= categ_max; j++)
+        for (j = 0; j < categ_max; j++)
         {
             vote[j] = 0;
         }
@@ -722,12 +722,12 @@ float ensemble_eval(DT_t* dt[], int ensemble_size) {
 
             node = find_dt_leaf_for_inst(dt[j]->root, instances[i],i,1);
 
-            vote[node->cls]++;
+            vote[node->cls - 1]++;
         }
 
-        uint32_t max_vote = rand_imax(categ_max) + 1;
+        uint32_t max_vote = rand_imax(categ_max);
 
-        for (j = 1; j <= categ_max; j++)
+        for (j = 0; j < categ_max; j++)
         {
             if (vote[j] > vote[max_vote]) {
                 max_vote = j;
@@ -736,7 +736,7 @@ float ensemble_eval(DT_t* dt[], int ensemble_size) {
 
         uint32_t categ = categories[i];
 
-        if (categ == max_vote)
+        if (categ == max_vote + 1)
         {
             hits++;
         }
@@ -1400,7 +1400,10 @@ DT_t* efti(float* t_hb, uint_fast16_t* iters)
     *t_hb = timing_tick2sec(exec_time);
     *iters = current_iter;
 
-    return &dt_best;
+    DT_t* res = (DT_t*) malloc(sizeof(DT_t));
+    dt_init(res);
+    dt_copy(&dt_best, res);
+    return res;
 }
 
 void efti_reset(const Efti_Conf_t *conf, T_Dataset* ds)

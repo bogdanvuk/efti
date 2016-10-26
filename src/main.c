@@ -109,7 +109,7 @@ int crossvalidation()
                 efti_config.max_time
         );
 
-    cv_conf = crossvalid_init(efti_config.dataset_selection, efti_config.ensemble_size, efti_config.seed, efti_config.folds, efti_config.runs);
+    cv_conf = crossvalid_init(efti_config.dataset_selection, 1, efti_config.seed, efti_config.folds, efti_config.runs);
 
     for (i = 0; i < cv_conf->datasets_num; i++)
     {
@@ -120,9 +120,9 @@ int crossvalidation()
             {
                 avg_fit = 0;
                 avg_size = 0;
+                cv_conf = crossvalid_next_conf();
                 for (e = 0; e < efti_config.ensemble_size; e++)
                 {
-                    cv_conf = crossvalid_next_conf();
                     efti_reset(&efti_config, cv_conf->dataset);
                     train_num = load_dataset_to_efti(cv_conf->dataset, cv_conf->perm,
                                                      cv_conf->chunk_start, cv_conf->chunk_end,
@@ -168,6 +168,7 @@ int crossvalidation()
                 for (e = 0; e < efti_config.ensemble_size; e++)
                 {
                     dt_free(dt[e]);
+                    free(dt[e]);
                 }
 
                 // return 0;
