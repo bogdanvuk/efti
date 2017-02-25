@@ -36,6 +36,8 @@ struct tree_el{
 
 typedef struct tree_el tree_node;
 
+#define is_child_of(parent, child) (((child) == (parent)->left) || ((child) == (parent)->right))
+
 tree_node* tree_create();
 int tree_create_child(tree_node* node, uint32_t child);
 int tree_delete_node(tree_node* node);
@@ -43,5 +45,6 @@ tree_node* tree_copy(tree_node* src);
 int tree_delete_child(tree_node* node, uint32_t child);
 tree_node* tree_get_sibling(tree_node* node);
 void tree_init();
+/* int is_child_of(tree_node* parent, tree_node* child); */
 
 #endif /* TREE_H_ */

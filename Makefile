@@ -1,4 +1,4 @@
-LDFLAGS = 
+LDFLAGS =
 OBJDIR = rel
 
 CXXFLAGS = -DEFTI_SW=1 -DEFTI_HW=0
@@ -11,7 +11,10 @@ $(shell mkdir -p $(DEPDIR) >/dev/null)
 DEPFLAGS = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.Td
 POSTCOMPILE = mv -f $(DEPDIR)/$*.Td $(DEPDIR)/$*.d
 
-rel: CXXFLAGS += -Ofast
+echo:
+	@echo $(SRCS)
+
+rel: CXXFLAGS += -DNDEBUG -Ofast -fPIC
 rel: app
 
 dbg:   CXXFLAGS += -g3

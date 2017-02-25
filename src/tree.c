@@ -141,6 +141,11 @@ int tree_delete_node(tree_node* node)
 	return 0;
 }
 
+/* int is_child_of(tree_node* parent, tree_node* child) */
+/* { */
+/*     return (child == parent->left) || (child == parent->right); */
+/* } */
+
 int tree_delete_child(tree_node* node, uint32_t child)
 {
 	if (child == CHILD_LEFT)
