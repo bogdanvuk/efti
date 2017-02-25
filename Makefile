@@ -14,7 +14,7 @@ POSTCOMPILE = mv -f $(DEPDIR)/$*.Td $(DEPDIR)/$*.d
 echo:
 	@echo $(SRCS)
 
-rel: CXXFLAGS += -DNDEBUG -Ofast
+rel: CXXFLAGS += -DNDEBUG -Ofast -fPIC
 rel: app
 
 dbg:   CXXFLAGS += -g3

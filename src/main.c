@@ -23,20 +23,20 @@
 
 Efti_Conf_t efti_config = {
     MAX_ITERATIONS,	// max_iterations
-    0.5,          // topology_mutation_rate;
+    0.6,          // topology_mutation_rate;
     0.0,           // weights_mutation_rate;
-    0.0,           // search_probability;
-    0.0,          // search_probability_raise_due_to_stagnation_step;
-    0.0,        // topo_mutation_rate_raise_due_to_stagnation_step;
+    0.05,           // search_probability;
+    5e-5,          // search_probability_raise_due_to_stagnation_step;
+    1,        // topo_mutation_rate_raise_due_to_stagnation_step;
     0.0,        // weight_mutation_rate_raise_due_to_stagnation_step;
-    0.0,           // return_to_best_prob_iteration_increment;
-    0.02,            // complexity_weight;
+    1e-4,           // return_to_best_prob_iteration_increment;
+    0.01,            // complexity_weight;
     0,              // impurity_weight;
     0,              // use_impurity_topo_mut;
     0,              // use_impurity_weight_mut;
     1,              // ensemble_size
-    5,              // runs
-    5,              // folds
+    1,              // runs
+    1,              // folds
     NULL,           // dataset_list
     SEED,           // seed
     SEARCH_EFTI_METROPOLIS, // search_function

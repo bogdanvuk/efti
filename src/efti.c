@@ -112,14 +112,6 @@ typedef struct {
 } T_Last_Classification;
 
 T_Last_Classification last_iter_classification[NUM_INST_MAX];
-
-//tree_node* last_classification_path[NUM_INST_MAX][MAX_TREE_DEPTH];
-//int64_t last_eval_sum[NUM_INST_MAX][MAX_TREE_DEPTH];
-int64_t changed_eval_sums[NUM_INST_MAX*MAX_TREE_DEPTH];
-tree_node* changed_paths[NUM_INST_MAX*MAX_TREE_DEPTH];
-int32_t changed_instances[NUM_INST_MAX*MAX_TREE_DEPTH];
-int32_t changed_depths[NUM_INST_MAX*MAX_TREE_DEPTH];
-int32_t changed_nodes_num;
 uint64_t total_nodes_traversed;
 uint64_t needed_nodes_traversed;
 float perc_recalc;
@@ -659,7 +651,6 @@ void find_node_distribution(DT_t* dt, uint32_t recalc_all)
     unsigned i;
     int16_t res;
 
-    changed_nodes_num = 0;
     if (dt->depth == 1) {
         for (i = 0 ; i < inst_cnt; i++)
         {

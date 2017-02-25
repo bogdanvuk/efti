@@ -161,7 +161,7 @@ def dump_mean_sorted_ranks(fn, ranks, cvs):
                 if a in r:
                     val = r[a]
 
-                    row += ["{0:0.2f}".format(val)]
+                    row += ["{0:0.3f}".format(val)]
                 else:
                     row += ["-"]
 
