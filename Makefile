@@ -1,8 +1,10 @@
 LDFLAGS =
 OBJDIR = rel
 
-CXXFLAGS = -DEFTI_SW=1 -DEFTI_HW=0
-SRCDIRS  = src src/datasets
+CXX=h5c++
+CXXFLAGS = -DEFTI_SW=1 -DEFTI_HW=0 -std=c++11
+# SRCDIRS  = src src/datasets
+SRCDIRS  = src
 INCLUDE = -Isrc
 SRCS    := $(shell find $(SRCDIRS) -maxdepth 1 -name '*.c')
 OBJS    := $(patsubst %.c,$(OBJDIR)/%.o,$(SRCS))
@@ -14,10 +16,10 @@ POSTCOMPILE = mv -f $(DEPDIR)/$*.Td $(DEPDIR)/$*.d
 echo:
 	@echo $(SRCS)
 
-rel: CXXFLAGS += -DNDEBUG -Ofast -fPIC
+rel: CXXFLAGS += -DNDEBUG -Ofast
 rel: app
 
-dbg:   CXXFLAGS += -g3
+dbg:   CXXFLAGS += -O0 -g3
 dbg: app
 
 test-dbg:   CXXFLAGS += -g3
@@ -44,6 +46,8 @@ clean:
 
 buildrepo:
 	@$(call make-repo)
+run: rel
+	rel/efti
 
 define make-repo
 	for dir in $(SRCDIRS); \

@@ -504,6 +504,17 @@ void apply_single_path_change(T_Last_Classification* last_classification, int de
 /* #include "loop_unfold.c" */
 /* #endif */
 
+
+static int64_t evaluate_node_test(int32_t v1[], int32_t v2[], uint_fast64_t v_len)
+{
+	int64_t res = 0;
+	while(v_len--){
+		res += v1[v_len] * v2[v_len];
+	}
+
+	return res;
+}
+
 tree_node* find_dt_leaf_for_inst(tree_node* dt, int32_t attributes[], int32_t inst_id, uint32_t total_recalc_all)
 {
     tree_node* cur_node;
@@ -1147,9 +1158,11 @@ float selection(float fit, DT_t* dt_mut, DT_t* dt_best) {
             returned_to_best_iter = current_iter;
 #if (EFTI_PRINT_STATS == 1)
             if (searching) {
-                efti_printf("$event:name=\"SAB\",iter=%d,fit=%f,size=%d\n", current_iter, dt_mut->fit, dt_mut->leaves_cnt);
+                efti_printf("$event:name=\"SAB\",iter=%d,acc=%f,fit=%f,size=%d *\n",
+							current_iter, dt_mut->accuracy, dt_mut->fit, dt_mut->leaves_cnt);
             } else {
-                efti_printf("$event:name=\"AB\",iter=%d,fit=%f,size=%d\n", current_iter, dt_mut->fit, dt_mut->leaves_cnt);
+                efti_printf("$event:name=\"AB\",iter=%d,acc=%f,fit=%f,size=%d *\n",
+							current_iter, dt_mut->accuracy, dt_mut->fit, dt_mut->leaves_cnt);
             }
 #endif
             searching = 0;
@@ -1157,7 +1170,8 @@ float selection(float fit, DT_t* dt_mut, DT_t* dt_best) {
         else
         {
 #if (EFTI_PRINT_STATS == 1)
-            efti_printf("$event:name=\"CB\",iter=%d,fit=%f,size=%d\n", current_iter, dt_mut->fit, dt_mut->leaves_cnt);
+            efti_printf("$event:name=\"CB\",iter=%d,acc=%f,fit=%f,size=%d\n",
+						current_iter, dt_mut->accuracy, dt_mut->fit, dt_mut->leaves_cnt);
 #endif
         }
     }
@@ -1215,7 +1229,8 @@ float selection(float fit, DT_t* dt_mut, DT_t* dt_best) {
             returned_to_best_iter = current_iter;
             stagnation_iter = 0;
 #if (EFTI_PRINT_STATS == 1)
-            efti_printf("$event:name=\"RB\",iter=%d,fit=%f,size=%d\n", current_iter, dt_best->fit, dt_best->leaves_cnt);
+            efti_printf("$event:name=\"RB\",iter=%d,acc=%f,fit=%f,size=%d\n",
+						current_iter, dt_mut->accuracy, dt_best->fit, dt_best->leaves_cnt);
 #endif
         }
         /* else if (topology_mutated && (rand_norm() < search_probability)) */
@@ -1228,7 +1243,8 @@ float selection(float fit, DT_t* dt_mut, DT_t* dt_best) {
 //				hw_apply_mutation(mut_nodes, mut_attr, mut_bit, weights_mutation_cnt);
 //#endif
 #if (EFTI_PRINT_STATS == 1)
-            efti_printf("$event:name=\"SP\",iter=%d,fit=%f,size=%d\n", current_iter, dt_mut->fit, dt_mut->leaves_cnt);
+            efti_printf("$event:name=\"SP\",iter=%d,acc=%f,fit=%f,size=%d\n",
+						current_iter, dt_mut->accuracy, dt_mut->fit, dt_mut->leaves_cnt);
             /* efti_printf("SP: i=%d\n\r", current_iter); */
 #endif
             delete_trimmed_subtree(topology_mutated, temp_mut_hang_tree, topo_mut_node);
@@ -1354,6 +1370,7 @@ DT_t* efti(float* t_hb, uint_fast16_t* iters)
 #if (EFTI_PRINT_PROGRESS_INTERVAL != 0)
         if (current_iter % EFTI_PRINT_PROGRESS_INTERVAL == 0) {
             efti_printf("Current iteration: %d\n", current_iter);
+            /* efti_printf("I: %d, ACC: %f, FIT: %f, SIZE: %d\n", current_iter, dt_best.accuracy, dt_best.fit, dt_best.leaves_cnt); */
         }
 #endif
         mutation(&dt_cur);
@@ -1398,11 +1415,19 @@ DT_t* efti(float* t_hb, uint_fast16_t* iters)
     return res;
 }
 
-void efti_reset(const Efti_Conf_t *conf, T_Dataset* ds)
+/* void efti_reset(const Efti_Conf_t *conf, T_Dataset* ds) */
+/* { */
+/*     attr_cnt = ds->attr_cnt; */
+/*     categ_max = ds->categ_max; */
+/*     dataset = ds; */
+/*     efti_conf = conf; */
+/*     inst_cnt = 0; */
+/* } */
+void efti_reset(const Efti_Conf_t *conf, int attr_cnt_, int categ_max_)
 {
-    attr_cnt = ds->attr_cnt;
-    categ_max = ds->categ_max;
-    dataset = ds;
+    attr_cnt = attr_cnt_;
+    categ_max = categ_max_;
+    /* dataset = ds; */
     efti_conf = conf;
     inst_cnt = 0;
 }

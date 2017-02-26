@@ -15,7 +15,14 @@
 #include <string.h>
 #include <unistd.h>
 #include <getopt.h>
-#include "crossvalid.h"
+/* #include "crossvalid.h" */
+#include <string>
+#include <vector>
+#include <H5Cpp.h>
+#include <iostream>
+#include <vector>
+
+using namespace H5;
 
 #define ENSEMBLE_SIZE_MAX         32
 #define MAX_ITERATIONS            50000
@@ -60,6 +67,59 @@ int load_dataset_to_efti(T_Dataset* ds, int* perm, int start, int end, int ex_st
     return total_cnt;
 }
 
+int file_load_dataset_to_efti(const Efti_Conf_t *conf){
+	std::string ifn = "/data/projects/dtnn/deep-learning-models/features.h5";
+
+    // Open HDF5 file handle, read only
+    H5File fp(ifn.c_str(),H5F_ACC_RDONLY);
+
+	int categ_max = fp.getNumObjs();
+
+	efti_reset(conf, 25088, categ_max);
+
+	std::cout << "Number of categories: " << categ_max << std::endl;
+
+	for(int c=0; c < categ_max; c++) {
+		Group grp = fp.openGroup(fp.getObjnameByIdx(c));
+
+		int categ_inst = grp.getNumObjs();
+
+		for(int i=0; i< categ_inst; i++) {
+			// access the required dataset by path name
+			DataSet dset = grp.openDataSet(grp.getObjnameByIdx(i));
+
+			// get the dataspace
+			DataSpace dspace = dset.getSpace();
+
+			// get the dataset type class
+			H5T_class_t type_class = dset.getTypeClass();
+			// According to HDFView, this is a 32-bit floating-point
+
+			// get the size of the dataset
+			hsize_t rank;
+			hsize_t dims[2];
+			rank = dspace.getSimpleExtentDims(dims, NULL); // rank = 1
+
+			// Define the memory dataspace
+			hsize_t dimsm[1];
+			dimsm[0] = dims[0];
+			DataSpace memspace (1,dimsm);
+
+			std::vector<int32_t> data;
+			data.resize(dims[0]);
+
+			/* int16_t data[25088]; */
+
+			dset.read(data.data(), PredType::NATIVE_INT, memspace, dspace); // FAILS
+
+			efti_load_instance(data.data(), c+1);
+
+		}
+	}
+
+	fp.close();
+}
+
 int crossvalidation()
 {
     int i, k, n, e;
@@ -70,7 +130,7 @@ int crossvalidation()
     float t_hb;
     uint_fast16_t iters;
     int train_num;
-    Cv_Status_T* cv_conf;
+    /* Cv_Status_T* cv_conf; */
 
 //	Xil_ExceptionRegisterHandler(XIL_EXCEPTION_ID_DATA_ABORT_INT,
 //					(Xil_ExceptionHandler)MyDataAbortHandler,
@@ -109,62 +169,64 @@ int crossvalidation()
                 efti_config.max_time
         );
 
-    cv_conf = crossvalid_init(efti_config.dataset_selection, 1, efti_config.seed, efti_config.folds, efti_config.runs);
+    /* cv_conf = crossvalid_init(efti_config.dataset_selection, 1, efti_config.seed, efti_config.folds, efti_config.runs); */
 
-    for (i = 0; i < cv_conf->datasets_num; i++)
-    {
-        for (n=0; n < efti_config.runs; n++)
-        {
+    /* for (i = 0; i < cv_conf->datasets_num; i++) */
+    /* { */
+    /*     for (n=0; n < efti_config.runs; n++) */
+    /*     { */
 
-            for (k = 0; k < efti_config.folds; k++)
-            {
-                avg_fit = 0;
-                avg_size = 0;
-                cv_conf = crossvalid_next_conf();
+    /*         for (k = 0; k < efti_config.folds; k++) */
+    /*         { */
+    /*             avg_fit = 0; */
+    /*             avg_size = 0; */
+    /*             cv_conf = crossvalid_next_conf(); */
                 for (e = 0; e < efti_config.ensemble_size; e++)
                 {
-                    efti_reset(&efti_config, cv_conf->dataset);
-                    train_num = load_dataset_to_efti(cv_conf->dataset, cv_conf->perm,
-                                                     cv_conf->chunk_start, cv_conf->chunk_end,
-                                                     cv_conf->fold_start, cv_conf->fold_start + cv_conf->fold_chunk_size);
+                    /* efti_reset(&efti_config, cv_conf->dataset); */
+                    /* train_num = load_dataset_to_efti(cv_conf->dataset, cv_conf->perm, */
+                    /*                                  cv_conf->chunk_start, cv_conf->chunk_end, */
+                    /*                                  cv_conf->fold_start, cv_conf->fold_start + cv_conf->fold_chunk_size); */
+					file_load_dataset_to_efti(&efti_config);
                     dt[e] = efti(&t_hb, &iters);
                     avg_fit += dt[e]->fit;
                     avg_size += dt[e]->nonleaves_cnt;
                 }
 
-#if EFTI_PROFILING == 0
+/* #if EFTI_PROFILING == 0 */
 
-                if (cv_conf->fold_chunk_size > 0) {
-                    load_dataset_to_efti(cv_conf->dataset, cv_conf->perm,
-                                         cv_conf->fold_start,
-                                         cv_conf->fold_start + cv_conf->fold_chunk_size,
-                                         0, 0);
+/*                 if (cv_conf->fold_chunk_size > 0) { */
+/*                     load_dataset_to_efti(cv_conf->dataset, cv_conf->perm, */
+/*                                          cv_conf->fold_start, */
+/*                                          cv_conf->fold_start + cv_conf->fold_chunk_size, */
+/*                                          0, 0); */
 
-                    accuracy =  ensemble_eval(dt, efti_config.ensemble_size);
-                    efti_printf("$cv_pc_run:dataset=\"%s\",run=%d,id=%d,train_range=(%d,%d),"
-                                "train_cnt=%d,test_range=(%d,%d),test_cnt=%d,fitness=%f,accuracy=%f,"
-                                "leaves=%d,depth=%d,nonleaves=%f,time=%f,ensemble_size=%d,"
-                                "iters=%d\n",
-                                cv_conf->dataset->name,
-                                n,
-                                k,
-                                cv_conf->chunk_start,
-                                cv_conf->chunk_end,
-                                cv_conf->chunk_size,
-                                cv_conf->fold_start,
-                                cv_conf->fold_start + cv_conf->fold_chunk_size,
-                                cv_conf->fold_chunk_size,
-                                avg_fit/efti_config.ensemble_size,
-                                accuracy,
-                                dt[0]->leaves_cnt,
-                                dt[0]->depth,
-                                avg_size/efti_config.ensemble_size,
-                                t_hb,
-                                efti_config.ensemble_size,
-                                iters
-                        );
-                }
-#endif
+/*                     accuracy =  ensemble_eval(dt, efti_config.ensemble_size); */
+/*                     efti_printf("$cv_pc_run:dataset=\"%s\",run=%d,id=%d,train_range=(%d,%d)," */
+/*                                 "train_cnt=%d,test_range=(%d,%d),test_cnt=%d,fitness=%f,accuracy=%f," */
+/*                                 "leaves=%d,depth=%d,nonleaves=%f,time=%f,ensemble_size=%d," */
+/*                                 "iters=%d\n", */
+/*                                 cv_conf->dataset->name, */
+/*                                 n, */
+/*                                 k, */
+/*                                 cv_conf->chunk_start, */
+/*                                 cv_conf->chunk_end, */
+/*                                 cv_conf->chunk_size, */
+/*                                 cv_conf->fold_start, */
+/*                                 cv_conf->fold_start + cv_conf->fold_chunk_size, */
+/*                                 cv_conf->fold_chunk_size, */
+/*                                 avg_fit/efti_config.ensemble_size, */
+/*                                 accuracy, */
+/*                                 dt[0]->leaves_cnt, */
+/*                                 dt[0]->depth, */
+/*                                 avg_size/efti_config.ensemble_size, */
+/*                                 t_hb, */
+/*                                 efti_config.ensemble_size, */
+/*                                 iters */
+/*                         ); */
+/*                 } */
+/* #endif */
+				std::cout << "Time elapsed: " << t_hb << std::endl;
                 for (e = 0; e < efti_config.ensemble_size; e++)
                 {
                     dt_free(dt[e]);
@@ -172,9 +234,9 @@ int crossvalidation()
                 }
 
                 // return 0;
-            }
-        }
-    }
+            /* } */
+    /*     } */
+    /* } */
 
     efti_close();
 

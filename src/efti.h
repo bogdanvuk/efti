@@ -6,15 +6,15 @@
 #include "tree.h"
 #include "dataset.h"
 
-#define EFTI_PRINT_PROGRESS_INTERVAL	100000
-#define EFTI_PRINT_STATS				0
+#define EFTI_PRINT_PROGRESS_INTERVAL	1000
+#define EFTI_PRINT_STATS				1
 #define DELTA_CLASSIFICATION    1
 #define DELTA_ON_DEPTH_THR      3
 #define DELTA_OFF_DEPTH_THR      1
 #define EFTI_PRINT_DTS          0
 #define CUSTOM_RAND 0
 
-#define DT_USE_LOOP_UNFOLD			1
+#define DT_USE_LOOP_UNFOLD			0
 #define LEAVES_MAX				NUM_NODES
 
 #define SEARCH_NONE 0
@@ -63,7 +63,8 @@ typedef struct {
 void dt_free(DT_t* dt);
 int efti_load_instance(const int32_t* instance, uint_fast16_t category);
 void efti_init();
-void efti_reset(const Efti_Conf_t *conf, T_Dataset* ds);
+// void efti_reset(const Efti_Conf_t *conf, T_Dataset* ds);
+void efti_reset(const Efti_Conf_t *conf, int attr_cnt_, int categ_max_);
 DT_t* efti(float* t_hb, uint_fast16_t* iters);
 void efti_close();
 float efti_eval(tree_node* dt);
