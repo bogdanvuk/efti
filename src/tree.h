@@ -21,7 +21,7 @@
 #define CHILD_RIGHT			1
 
 struct tree_el{
-	int32_t weights[WEIGHTS_MAX_NUM];
+	TAttr weights[WEIGHTS_MAX_NUM];
 	uint32_t banks[DT_MEM_BANKS_NUM];
 	uint32_t level;
 	uint32_t id;

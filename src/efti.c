@@ -13,6 +13,7 @@
 #include "dataset.h"
 /* #include "dt2js.h" */
 #include <stdio.h>
+#include "oc1_api.h"
 
 #if (DT_USE_LOOP_UNFOLD == 1)
 #include "loop_unfold.h"
@@ -104,7 +105,8 @@ uint32_t inst_cnt;
 uint32_t categ_max;
 T_Dataset* dataset;
 //uint32_t coef_packed_mem[COEF_BANKS_MAX_NUM];
-int32_t instances[NUM_INST_MAX][NUM_ATTRIBUTES];
+TAttr instances[NUM_INST_MAX][NUM_ATTRIBUTES];
+int32_t categ_inst_num[1024];
 
 typedef struct {
     tree_node* path[MAX_TREE_DEPTH];
@@ -133,7 +135,7 @@ uint_fast16_t mut_banks[MAX_WEIGHT_MUTATIONS];
 tree_node* mut_nodes[MAX_WEIGHT_MUTATIONS];
 uint32_t mut_masks[MAX_WEIGHT_MUTATIONS];
 uint32_t mut_attr[MAX_WEIGHT_MUTATIONS];
-int32_t mut_attr_val[MAX_WEIGHT_MUTATIONS];
+TAttr mut_attr_val[MAX_WEIGHT_MUTATIONS];
 uint32_t mut_bit[MAX_WEIGHT_MUTATIONS];
 uint32_t mut_bank_val[MAX_WEIGHT_MUTATIONS];
 uint32_t categories[NUM_INST_MAX];
@@ -201,6 +203,22 @@ void get_bank_bit(uint32_t attr, uint32_t bit_pos, uint32_t* bank, uint32_t* ban
     *bank = attr * COEF_RES / 32;
     *bank_bit_pos = (attr*COEF_RES + bit_pos) % 32;
 }
+
+void print_distribution_matrix(DT_t* dt) {
+	for (unsigned i=0; i <= categ_max; i++) {
+		efti_printf("------|");
+	}
+	efti_printf("\n");
+
+	for (unsigned i=1; i <= dt->leaves_cnt; i++) {
+		efti_printf("%5d |", i);
+		for (unsigned j=1; j <= categ_max; j++) {
+			efti_printf("%5d |", node_categories_distrib[i][j]);
+		}
+		efti_printf("\n");
+	}
+}
+
 //
 //int pack_coefs(int32_t coefs[], uint32_t coef_cnt, uint32_t coef_res, uint32_t coef_mem[])
 //{
@@ -248,7 +266,8 @@ void get_bank_bit(uint32_t attr, uint32_t bit_pos, uint32_t* bank, uint32_t* ban
 //
 //}
 
-void random_hiperplane(int32_t weights[])
+/* void random_hiperplane(int32_t weights[]) */
+void random_hiperplane(tree_node* node) //int32_t weights[])
 {
     uint_fast16_t inst_i;
     uint_fast16_t inst_j;
@@ -257,17 +276,45 @@ void random_hiperplane(int32_t weights[])
     float delta;
     uint_fast16_t i;
 
-    inst_i = rand_imax(inst_cnt);
-    inst_j = inst_i;
-    while (categories[inst_i] == categories[inst_j])
-    {
-        inst_j = rand_imax(inst_cnt);
-    }
+    uint_fast16_t categ_i = 1;
+    uint_fast16_t categ_j = 2;
+
+	for (uint_fast16_t j = 3; j < categ_max; j++)
+	{
+		uint_fast16_t d = node_categories_distrib[node->id][j];
+		if (d > node_categories_distrib[node->id][categ_i]) {
+			categ_i = j;
+		} else if (d > node_categories_distrib[node->id][categ_i]) {
+			categ_j = j;
+		}
+	}
+
+	/* inst_i = rand_imax(inst_cnt); */
+	/* inst_j = inst_i; */
+	/* while (categories[inst_i] == categories[inst_j]) { */
+	/* 	inst_j = rand_imax(inst_cnt); */
+	/* } */
+
+
+    inst_i = rand_imax(categ_inst_num[categ_i]);
+	for(unsigned i=1; i<categ_i; i++) {
+		inst_i += categ_inst_num[i];
+	}
+
+    inst_j = rand_imax(categ_inst_num[categ_j]);
+	for(unsigned i=1; i<categ_i; i++) {
+		inst_j += categ_inst_num[i];
+	}
 
     for (i = 0; i < attr_cnt; i++)
     {
-        weights[i] = instances[inst_i][i] - instances[inst_j][i];
+        node->weights[i] = instances[inst_i][i] - instances[inst_j][i];
     }
+
+    /* for (i = 0; i < attr_cnt; i++) */
+    /* { */
+    /*     weights[i] = instances[inst_i][i] - instances[inst_j][i]; */
+    /* } */
 
 //    efti_printf("w = np.array([");
 //    for (i = 0; i < attr_cnt; i++)
@@ -291,22 +338,32 @@ void random_hiperplane(int32_t weights[])
 //    efti_printf("])\n");
 
     delta = ((float) (rand_imax(90)) + 5) / 100;
-//    efti_printf("inti: %d, instj: %d, delta: %f\n", inst_i, inst_j, delta);
+	/* efti_printf("inti: %d, instj: %d, delta: %f\n", inst_i, inst_j, delta); */
 
     res_i = 0;
     res_j = 0;
     for (i = 0; i < attr_cnt; i++)
     {
-        res_i += ((int64_t) weights[i]) * instances[inst_i][i];
-        res_j += ((int64_t) weights[i]) * instances[inst_j][i];
+        res_i += ((int64_t) node->weights[i]) * instances[inst_i][i];
+        res_j += ((int64_t) node->weights[i]) * instances[inst_j][i];
     }
+    /* for (i = 0; i < attr_cnt; i++) */
+    /* { */
+    /*     res_i += ((int64_t) weights[i]) * instances[inst_i][i]; */
+    /*     res_j += ((int64_t) weights[i]) * instances[inst_j][i]; */
+    /* } */
 
     for (i = attr_cnt; i < NUM_ATTRIBUTES; i++)
     {
-        weights[i] = 0;
+        node->weights[i] = 0;
     }
+    /* for (i = attr_cnt; i < NUM_ATTRIBUTES; i++) */
+    /* { */
+    /*     weights[i] = 0; */
+    /* } */
 
-    weights[NUM_ATTRIBUTES] = ((int64_t) (delta*res_i + (1 - delta)*res_j)) >> ATTRIBUTE_RES >> DT_ADDER_TREE_DEPTH;
+    node->weights[NUM_ATTRIBUTES] = ((int64_t) (delta*res_i + (1 - delta)*res_j)) >> ATTRIBUTE_RES >> DT_ADDER_TREE_DEPTH;
+    /* weights[NUM_ATTRIBUTES] = ((int64_t) (delta*res_i + (1 - delta)*res_j)) >> ATTRIBUTE_RES >> DT_ADDER_TREE_DEPTH; */
 
 //    efti_printf("th = %d\n", weights[NUM_ATTRIBUTES]);
 
@@ -324,13 +381,14 @@ int efti_clear_instances()
     return 0;
 }
 
-int efti_load_instance(const int32_t* instance, uint_fast16_t category)
+int efti_load_instance(const TAttr* instance, uint_fast16_t category)
 {
     unsigned i;
 
     for (i = 0; i < attr_cnt; i++)
     {
-        instances[inst_cnt][i] = (instance[i] + 1);
+        /* instances[inst_cnt][i] = (instance[i] + 1); */
+        instances[inst_cnt][i] = instance[i];
     }
 
 //	Xil_Out32(INST_MEM_BASE(inst_cnt), coef_packed_mem[0]);
@@ -357,6 +415,7 @@ int efti_load_instance(const int32_t* instance, uint_fast16_t category)
 #endif
 
     categories[inst_cnt] = category;
+	categ_inst_num[category]++;
 
     inst_cnt++;
 
@@ -505,9 +564,9 @@ void apply_single_path_change(T_Last_Classification* last_classification, int de
 /* #endif */
 
 
-static int64_t evaluate_node_test(int32_t v1[], int32_t v2[], uint_fast64_t v_len)
+static TAttr evaluate_node_test(TAttr v1[], TAttr v2[], uint_fast64_t v_len)
 {
-	int64_t res = 0;
+	TAttr res = 0;
 	while(v_len--){
 		res += v1[v_len] * v2[v_len];
 	}
@@ -515,11 +574,12 @@ static int64_t evaluate_node_test(int32_t v1[], int32_t v2[], uint_fast64_t v_le
 	return res;
 }
 
-tree_node* find_dt_leaf_for_inst(tree_node* dt, int32_t attributes[], int32_t inst_id, uint32_t total_recalc_all)
+tree_node* find_dt_leaf_for_inst(tree_node* dt, TAttr attributes[], int32_t inst_id, uint32_t total_recalc_all)
 {
     tree_node* cur_node;
-    int16_t res_scaled;
-    int64_t res;
+    /* int16_t res_scaled; */
+    /* int64_t res; */
+    TAttr res;
     uint_fast16_t j;
 #if (DELTA_CLASSIFICATION == 1)
     int path_diverged = total_recalc_all | (!delta_on);
@@ -583,22 +643,15 @@ tree_node* find_dt_leaf_for_inst(tree_node* dt, int32_t attributes[], int32_t in
                 assert(cur_node->parent == prev_node);
             }
         } else {
-#if (DT_USE_LOOP_UNFOLD == 1)
             needed_nodes_traversed++;
             res = evaluate_node_test(cur_node->weights, attributes, attr_cnt);
-#else
-            res = 0;
-            for (j = 0; j < attr_cnt; j++)
-            {
-                res += cur_node->weights[j] * attributes[j];
-            }
-#endif
         }
 
         if (path_diverged) {
-            res_scaled = res >> ATTRIBUTE_RES >> DT_ADDER_TREE_DEPTH;
+            /* res_scaled = res >> ATTRIBUTE_RES >> DT_ADDER_TREE_DEPTH; */
 
-            if (res_scaled >= cur_node->weights[NUM_ATTRIBUTES])
+            /* if (res_scaled >= cur_node->weights[NUM_ATTRIBUTES]) */
+            if (res >= cur_node->weights[NUM_ATTRIBUTES])
             {
                 cur_node = cur_node->right;
             }
@@ -661,13 +714,20 @@ void hw_start(uint32_t get_classes)
 void find_node_distribution(DT_t* dt, uint32_t recalc_all)
 {
     unsigned i;
-    int16_t res;
+    /* int16_t res; */
+	float res;
 
     if (dt->depth == 1) {
-        for (i = 0 ; i < inst_cnt; i++)
+		for (i = 0 ; i < inst_cnt; i++)
         {
             uint32_t categ = categories[i];
-            res = evaluate_node_test(dt->root->weights, instances[i], attr_cnt) >> ATTRIBUTE_RES >> DT_ADDER_TREE_DEPTH;
+            /* res = evaluate_node_test(dt->root->weights, instances[i], attr_cnt) >> ATTRIBUTE_RES >> DT_ADDER_TREE_DEPTH; */
+            res = evaluate_node_test(dt->root->weights, instances[i], attr_cnt);
+			/* printf("Attr0: %f, Attr1: %f, Attr2: %f\n", instances[0][12], */
+			/* 	   instances[0][30], instances[0][2]); */
+			/* printf("Coef0: %f, Coef1: %f, Coef2: %f\n", dt->root->weights[0], */
+			/* 	   dt->root->weights[1], dt->root->weights[2]); */
+			/* printf("Res: %f\n", res); */
 
             if (res >= dt->root->weights[NUM_ATTRIBUTES])
             {
@@ -830,6 +890,8 @@ void fitness_eval(DT_t* dt, uint32_t recalc_all_paths)
 
     dt->fit = dt->accuracy * (1 - efti_conf->complexity_weight*dt->oversize*dt->oversize) * (1 - efti_conf->impurity_weight*dt->impurity);
 
+	/* print_distribution_matrix(dt); */
+
 }
 
 #if EFTI_HW == 1
@@ -902,10 +964,10 @@ void hw_apply_mutation(tree_node* mut_nodes[], uint32_t mut_attr[], uint32_t mut
 {
     unsigned i;
 
-    for (i = 0; i < weights_mutation_cnt; i++)
-    {
-        mut_nodes[i]->weights[mut_attr[i]] ^= (1 << mut_bit[i]);
-    }
+    /* for (i = 0; i < weights_mutation_cnt; i++) */
+    /* { */
+    /*     mut_nodes[i]->weights[mut_attr[i]] ^= (1 << mut_bit[i]); */
+    /* } */
 }
 
 float sigmoid(float x) {
@@ -975,7 +1037,8 @@ void mutation(DT_t* dt) {
                     topology_mutated = TOPO_CHILDREN_ADDED;
                     tree_create_child(topo_mut_node, CHILD_LEFT);
                     tree_create_child(topo_mut_node, CHILD_RIGHT);
-                    random_hiperplane(topo_mut_node->weights);
+                    random_hiperplane(topo_mut_node);
+                    /* random_hiperplane(topo_mut_node->weights); */
                     temp_mut_hang_tree = NULL;
                     topo_mut_sibling = NULL;
 #if (EFTI_HW == 1)
@@ -1165,6 +1228,7 @@ float selection(float fit, DT_t* dt_mut, DT_t* dt_best) {
 							current_iter, dt_mut->accuracy, dt_mut->fit, dt_mut->leaves_cnt);
             }
 #endif
+			print_distribution_matrix(dt_best);
             searching = 0;
         }
         else
@@ -1340,7 +1404,17 @@ DT_t* efti(float* t_hb, uint_fast16_t* iters)
     dt_cur.root = tree_create();
     tree_create_child(dt_cur.root, CHILD_LEFT);
     tree_create_child(dt_cur.root, CHILD_RIGHT);
-    random_hiperplane(dt_cur.root->weights);
+    /* random_hiperplane(dt_cur.root->weights); */
+	init_oc1(inst_cnt, attr_cnt, categ_max);
+
+	for (int i = 0 ; i < inst_cnt; i++)
+	{
+		oc1_load_instance(instances[i], categories[i]);
+	}
+
+	oc1_split(dt_cur.root->weights, &dt_cur.root->weights[NUM_ATTRIBUTES]);
+
+    /* random_hiperplane(dt_cur.root); */
 #if (EFTI_HW == 1)
     pack_coefs(dt_cur->weights, NUM_ATTRIBUTES + 1, COEF_RES, dt_cur->banks);
 #endif
@@ -1427,6 +1501,10 @@ void efti_reset(const Efti_Conf_t *conf, int attr_cnt_, int categ_max_)
 {
     attr_cnt = attr_cnt_;
     categ_max = categ_max_;
+	for(unsigned i=0;i<categ_max;i++) {
+		categ_inst_num[i] = 0;
+	}
+
     /* dataset = ds; */
     efti_conf = conf;
     inst_cnt = 0;

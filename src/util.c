@@ -50,12 +50,14 @@ int print_t( tree_node* tree, int attr_cnt)
     if ((attr_cnt > 0) && (tree->left != NULL)) {
         strcat(node_desc, " [");
         for (int i = 0; i < attr_cnt; i++) {
-            sprintf(w, "%d ", tree->weights[i]);
+            /* sprintf(w, "%d ", tree->weights[i]); */
+            sprintf(w, "%f ", tree->weights[i]);
             strcat(node_desc, w);
         }
 
         strcat(node_desc, "], ");
-        sprintf(w, "%d", tree->weights[NUM_ATTRIBUTES]);
+        /* sprintf(w, "%d", tree->weights[NUM_ATTRIBUTES]); */
+        sprintf(w, "%f", tree->weights[NUM_ATTRIBUTES]);
         strcat(node_desc, w);
     }
 

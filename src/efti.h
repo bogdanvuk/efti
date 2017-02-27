@@ -61,7 +61,7 @@ typedef struct {
 }DT_t;
 
 void dt_free(DT_t* dt);
-int efti_load_instance(const int32_t* instance, uint_fast16_t category);
+int efti_load_instance(const TAttr* instance, uint_fast16_t category);
 void efti_init();
 // void efti_reset(const Efti_Conf_t *conf, T_Dataset* ds);
 void efti_reset(const Efti_Conf_t *conf, int attr_cnt_, int categ_max_);

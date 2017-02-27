@@ -9,6 +9,7 @@
 #define DATASET_H_
 
 #include <stdint.h>
+#include "hw_config.h"
 
 typedef struct
 {
@@ -18,7 +19,7 @@ typedef struct
 
 	char	name[32];
 
-	int32_t* instances;
+	TAttr* instances;
 	uint32_t* classes;
 } T_Dataset;
 

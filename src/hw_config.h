@@ -35,4 +35,7 @@
 
 #define DT_ADDER_TREE_DEPTH			5
 
+typedef float TAttr;
+// typedef int32_t TAttr;
+
 #endif /* HW_CONFIG_H_ */

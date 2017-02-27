@@ -42,7 +42,8 @@ void _dt2json_rec(char** js, tree_node* dt, T_Dataset* ds, tree_node* ids[], int
 	if (!(dt->left) && !(dt->right)) {
 		cls = dt->cls;
 	} else {
-		thr = ((float) (dt->weights[NUM_ATTRIBUTES] << (DT_ADDER_TREE_DEPTH + 1))) / (1 << 15);
+		/* thr = ((float) (dt->weights[NUM_ATTRIBUTES] << (DT_ADDER_TREE_DEPTH + 1))) / (1 << 15); */
+		thr = dt->weights[NUM_ATTRIBUTES];
 		coef_cur = coeffs;
 		for (i = 0; i < ds->attr_cnt; i++) {
 			if (i != 0) {
@@ -50,7 +51,8 @@ void _dt2json_rec(char** js, tree_node* dt, T_Dataset* ds, tree_node* ids[], int
 				coef_cur++;
 			}
 
-			coef_cur += sprintf(coef_cur, "%0.5f", ((float) dt->weights[i]) / (1 << 15));
+			/* coef_cur += sprintf(coef_cur, "%0.5f", ((float) dt->weights[i]) / (1 << 15)); */
+			coef_cur += sprintf(coef_cur, "%0.5f", dt->weights[i]);
 		}
 	}
 

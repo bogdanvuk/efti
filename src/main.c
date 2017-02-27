@@ -37,9 +37,9 @@ Efti_Conf_t efti_config = {
     1,        // topo_mutation_rate_raise_due_to_stagnation_step;
     0.0,        // weight_mutation_rate_raise_due_to_stagnation_step;
     1e-4,           // return_to_best_prob_iteration_increment;
-    0.01,            // complexity_weight;
+    0.0001,            // complexity_weight;
     0,              // impurity_weight;
-    0,              // use_impurity_topo_mut;
+    1,              // use_impurity_topo_mut;
     0,              // use_impurity_weight_mut;
     1,              // ensemble_size
     1,              // runs
@@ -105,12 +105,14 @@ int file_load_dataset_to_efti(const Efti_Conf_t *conf){
 			dimsm[0] = dims[0];
 			DataSpace memspace (1,dimsm);
 
-			std::vector<int32_t> data;
+			std::vector<TAttr> data;
 			data.resize(dims[0]);
 
 			/* int16_t data[25088]; */
 
-			dset.read(data.data(), PredType::NATIVE_INT, memspace, dspace); // FAILS
+			// dset.read(data.data(), PredType::NATIVE_INT, memspace, dspace);
+
+			dset.read(data.data(), PredType::NATIVE_FLOAT, memspace, dspace);
 
 			efti_load_instance(data.data(), c+1);
 
