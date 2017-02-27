@@ -205,9 +205,17 @@ void get_bank_bit(uint32_t attr, uint32_t bit_pos, uint32_t* bank, uint32_t* ban
 }
 
 void print_distribution_matrix(DT_t* dt) {
+
+	efti_printf(" leaf |");
+	for (unsigned i=1; i <= categ_max; i++) {
+		efti_printf(" C%03d |", i+1);
+	}
+	efti_printf(" impr \n");
+
 	for (unsigned i=0; i <= categ_max; i++) {
 		efti_printf("------|");
 	}
+	efti_printf("------");
 	efti_printf("\n");
 
 	for (unsigned i=1; i <= dt->leaves_cnt; i++) {
@@ -215,6 +223,7 @@ void print_distribution_matrix(DT_t* dt) {
 		for (unsigned j=1; j <= categ_max; j++) {
 			efti_printf("%5d |", node_categories_distrib[i][j]);
 		}
+		efti_printf("%5d", (int) dt->leaves[i-1]->impurity);
 		efti_printf("\n");
 	}
 }
@@ -265,6 +274,17 @@ void print_distribution_matrix(DT_t* dt) {
 //	return bank_cnt;
 //
 //}
+
+void oc1_hyperplane(tree_node* node) {
+	reset_oc1();
+	for(unsigned i=0; i<inst_cnt; i++) {
+		if (last_iter_classification[i].path[node->level] == node) {
+			oc1_load_instance(instances[i], categories[i]);
+		}
+	}
+
+	oc1_split(node->weights, &node->weights[NUM_ATTRIBUTES]);
+}
 
 /* void random_hiperplane(int32_t weights[]) */
 void random_hiperplane(tree_node* node) //int32_t weights[])
@@ -682,6 +702,12 @@ tree_node* find_dt_leaf_for_inst(tree_node* dt, TAttr attributes[], int32_t inst
 
     }
 
+#if (DELTA_CLASSIFICATION == 1)
+	if (total_recalc_all && delta_on) {
+		apply_single_path_change(last_classification, depth, 0, cur_node);
+	}
+#endif
+
     return cur_node;
 }
 
@@ -717,7 +743,8 @@ void find_node_distribution(DT_t* dt, uint32_t recalc_all)
     /* int16_t res; */
 	float res;
 
-    if (dt->depth == 1) {
+    /* if (dt->depth == 1) { */
+    if (dt->depth == 0) {
 		for (i = 0 ; i < inst_cnt; i++)
         {
             uint32_t categ = categories[i];
@@ -843,15 +870,18 @@ float accuracy_calc(DT_t* dt, uint32_t recalc_all_paths) {
         dt->leaves[i-1]->cls = dominant_category;
 
 #if (IMPURITY_CALC == 1)
-        leaves[i-1]->impurity = ((float) (total_leaf_inst_cnt - dominant_category_cnt)) / (total_leaf_inst_cnt + 1); // +1 not to divide by zero when no instance in leaf
+        /* dt->leaves[i-1]->impurity = ((float) (total_leaf_inst_cnt - dominant_category_cnt)) / (total_leaf_inst_cnt + 1); // +1 not to divide by zero when no instance in leaf */
+        dt->leaves[i-1]->impurity = total_leaf_inst_cnt - dominant_category_cnt;
+		/* efti_printf("Dominant %d, Total %d, Impurity %f\n", */
+		/* 			dominant_category_cnt, total_leaf_inst_cnt, dt->leaves[i-1]->impurity); */
 #endif
     }
 
-#if (IMPURITY_CALC == 1)
-    for (int i = nonleaves_cnt - 1; i >= 0; i--) {
-        nonleaves[i]->impurity = nonleaves[i]->left->impurity + nonleaves[i]->right->impurity;
-    }
-#endif
+/* #if (IMPURITY_CALC == 1) */
+/*     for (int i = nonleaves_cnt - 1; i >= 0; i--) { */
+/*         nonleaves[i]->impurity = nonleaves[i]->left->impurity + nonleaves[i]->right->impurity; */
+/*     } */
+/* #endif */
 
     return ((float) hits)/inst_cnt;
 
@@ -882,10 +912,11 @@ void fitness_eval(DT_t* dt, uint32_t recalc_all_paths)
 
 #if (IMPURITY_CALC == 1)
     float tot_impurity = 0;
-    for (int i = 0; i < leaves_cnt; i++) {
-        tot_impurity += leaves[i]->impurity;
+    for (unsigned i = 0; i < dt->leaves_cnt; i++) {
+        tot_impurity += dt->leaves[i]->impurity;
     }
-    impurity = tot_impurity / leaves_cnt;
+    /* dt->impurity = tot_impurity / dt->leaves_cnt; */
+    dt->impurity = tot_impurity;
 #endif
 
     dt->fit = dt->accuracy * (1 - efti_conf->complexity_weight*dt->oversize*dt->oversize) * (1 - efti_conf->impurity_weight*dt->impurity);
@@ -1037,7 +1068,10 @@ void mutation(DT_t* dt) {
                     topology_mutated = TOPO_CHILDREN_ADDED;
                     tree_create_child(topo_mut_node, CHILD_LEFT);
                     tree_create_child(topo_mut_node, CHILD_RIGHT);
-                    random_hiperplane(topo_mut_node);
+                    /* random_hiperplane(topo_mut_node); */
+                    oc1_hyperplane(topo_mut_node);
+					efti_printf("Split the node #%d with impurity %f\n", topo_mut_node->id,
+								dt->leaves[topo_mut_node->id-1]->impurity);
                     /* random_hiperplane(topo_mut_node->weights); */
                     temp_mut_hang_tree = NULL;
                     topo_mut_sibling = NULL;
@@ -1085,8 +1119,8 @@ void mutation(DT_t* dt) {
     /*     efti_printf("Next\n"); */
     /* } */
     weights_mutation_cnt = 1 + stagnation_iter*efti_conf->weight_mutation_rate_raise_due_to_stagnation_step;
-    if (weights_mutation_cnt > 2) {
-        weights_mutation_cnt = 2;
+    if (weights_mutation_cnt > 10) {
+        weights_mutation_cnt = 10;
     }
     /* if (attr_cnt < 15) { */
     /*     if (dt->nonleaves_cnt < categ_max) { */
@@ -1229,6 +1263,7 @@ float selection(float fit, DT_t* dt_mut, DT_t* dt_best) {
             }
 #endif
 			print_distribution_matrix(dt_best);
+			/* print_t(dt_best->root, attr_cnt); */
             searching = 0;
         }
         else
@@ -1425,8 +1460,9 @@ DT_t* efti(float* t_hb, uint_fast16_t* iters)
     hw_set_whole_tree(dt_cur);
 #endif
 
-    delta_on = 0;
+    delta_on = 1;
     fitness_eval(&dt_cur, delta_on);
+	print_distribution_matrix(&dt_cur);
     dt_copy(&dt_cur, &dt_best);
     /* recalculate_path(dt_cur); */
     stagnation_iter = 0;
@@ -1452,18 +1488,18 @@ DT_t* efti(float* t_hb, uint_fast16_t* iters)
         fitness_eval(&dt_cur, 0);
         selection(fit, &dt_cur, &dt_best);
 #if (DELTA_CLASSIFICATION == 1)
-        if (!delta_on) {
-            if (dt_cur.depth >= DELTA_ON_DEPTH_THR) {
-                /* efti_printf("DELTA ON, depth: %d\n", dt_cur.depth); */
-                delta_on = 1;
-                recalculate_path(&dt_cur);
-            }
-        } else {
-            if (dt_cur.depth <= DELTA_OFF_DEPTH_THR) {
-                /* efti_printf("DELTA OFF, depth: %d\n", dt_cur.depth); */
-                delta_on = 0;
-            }
-        }
+        /* if (!delta_on) { */
+        /*     if (dt_cur.depth >= DELTA_ON_DEPTH_THR) { */
+        /*         /\* efti_printf("DELTA ON, depth: %d\n", dt_cur.depth); *\/ */
+        /*         delta_on = 1; */
+        /*         recalculate_path(&dt_cur); */
+        /*     } */
+        /* } else { */
+        /*     if (dt_cur.depth <= DELTA_OFF_DEPTH_THR) { */
+        /*         /\* efti_printf("DELTA OFF, depth: %d\n", dt_cur.depth); *\/ */
+        /*         delta_on = 0; */
+        /*     } */
+        /* } */
 #endif
 
         if (efti_conf->max_time > 0.0)

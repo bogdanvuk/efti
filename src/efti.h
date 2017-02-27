@@ -16,6 +16,7 @@
 
 #define DT_USE_LOOP_UNFOLD			0
 #define LEAVES_MAX				NUM_NODES
+#define IMPURITY_CALC 1
 
 #define SEARCH_NONE 0
 #define SEARCH_EFTI_METROPOLIS 1
