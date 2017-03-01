@@ -19,7 +19,8 @@ typedef struct
 
 	char	name[32];
 
-	TAttr* instances;
+	// TAttr* instances;
+	int32_t* instances;
 	uint32_t* classes;
 } T_Dataset;
 

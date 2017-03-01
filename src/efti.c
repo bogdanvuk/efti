@@ -158,7 +158,8 @@ uint32_t non_eval_ticks = 0;
 #define TOPO_RIGHT_CHILD_REMOVED	3
 #define TOPO_ROOT_CHILD_REMOVED 	4
 
-#define MAX_ATTR_VAL ((1 << (COEF_RES - 1)) - 1)
+/* #define MAX_ATTR_VAL ((1 << (COEF_RES - 1)) - 1) */
+#define MAX_ATTR_VAL 1.0
 
 //void __attribute__((optimize("O0"))) HbAssert(uint32_t expression)
 void HbAssert(uint32_t expression)
@@ -1531,7 +1532,7 @@ DT_t* efti(float* t_hb, uint_fast16_t* iters)
 
     delta_on = 1;
     fitness_eval(&dt_cur, delta_on);
-	print_distribution_matrix(&dt_cur);
+	/* print_distribution_matrix(&dt_cur); */
     dt_copy(&dt_cur, &dt_best);
     /* recalculate_path(dt_cur); */
     stagnation_iter = 0;

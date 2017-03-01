@@ -3,8 +3,8 @@ OBJDIR = rel
 
 CXX=h5c++
 CXXFLAGS = -DEFTI_SW=1 -DEFTI_HW=0 -std=c++11
-# SRCDIRS  = src src/datasets
-SRCDIRS  = src
+SRCDIRS  = src src/datasets
+# SRCDIRS  = src
 INCLUDE = -Isrc
 SRCS    := $(shell find $(SRCDIRS) -maxdepth 1 -name '*.c')
 OBJS    := $(patsubst %.c,$(OBJDIR)/%.o,$(SRCS))
