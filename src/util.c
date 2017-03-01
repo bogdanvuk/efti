@@ -41,7 +41,7 @@ int print_t( tree_node* tree, int attr_cnt)
 {
     char p[16];
     char w[12];
-    char node_desc[512];
+    char node_desc[2048];
 
     sprintf(p, "%p", tree);
     /* sprintf(node_desc, "(%s)", &p[5]); */

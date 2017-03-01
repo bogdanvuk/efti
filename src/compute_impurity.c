@@ -58,17 +58,17 @@ float compute_impurity(int cur_no_of_points)
 
 void print_distribution_matrix() {
 	for (int i=0; i <= no_of_categories; i++) {
-		printf("------|");
+		printf("-----|");
 	}
 	printf("\n");
 
 	for (unsigned i=0; i < 2; i++) {
-		printf("%5d |", i);
+		printf("%4d |", i);
 		for (int j=1; j <= no_of_categories; j++) {
 			if (i == 0)
-				printf("%5d |", left_count[j]);
+				printf("%4d |", left_count[j]);
 			else
-				printf("%5d |", right_count[j]);
+				printf("%4d |", right_count[j]);
 		}
 		printf("\n");
 	}

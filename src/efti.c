@@ -110,7 +110,7 @@ int32_t categ_inst_num[1024];
 
 typedef struct {
     tree_node* path[MAX_TREE_DEPTH];
-    int64_t sum[MAX_TREE_DEPTH];
+    TAttr sum[MAX_TREE_DEPTH];
 } T_Last_Classification;
 
 T_Last_Classification last_iter_classification[NUM_INST_MAX];
@@ -206,24 +206,25 @@ void get_bank_bit(uint32_t attr, uint32_t bit_pos, uint32_t* bank, uint32_t* ban
 
 void print_distribution_matrix(DT_t* dt) {
 
-	efti_printf(" leaf |");
+	efti_printf(" lef |");
 	for (unsigned i=1; i <= categ_max; i++) {
-		efti_printf(" C%03d |", i+1);
+		efti_printf(" C%02d |", i+1);
 	}
-	efti_printf(" impr \n");
+	efti_printf(" imp | dis \n");
 
 	for (unsigned i=0; i <= categ_max; i++) {
-		efti_printf("------|");
+		efti_printf("-----|");
 	}
-	efti_printf("------");
+	efti_printf("-----");
 	efti_printf("\n");
 
 	for (unsigned i=1; i <= dt->leaves_cnt; i++) {
-		efti_printf("%5d |", i);
+		efti_printf("%4d |", i);
 		for (unsigned j=1; j <= categ_max; j++) {
-			efti_printf("%5d |", node_categories_distrib[i][j]);
+			efti_printf("%4d |", node_categories_distrib[i][j]);
 		}
-		efti_printf("%5d", (int) dt->leaves[i-1]->impurity);
+		efti_printf("%4d |", (int) dt->leaves[i-1]->impurity);
+		efti_printf("%4d", (int) dt->leaves[i-1]->disbalance);
 		efti_printf("\n");
 	}
 }
@@ -574,7 +575,11 @@ int extract_hierarcy(DT_t* dt)
     return _extract_hierarcy(dt, dt->root, 0);
 }
 
-void apply_single_path_change(T_Last_Classification* last_classification, int depth, int64_t res, tree_node* cur_node) {
+void apply_single_path_change(T_Last_Classification* last_classification, int depth, TAttr res, tree_node* cur_node) {
+	/* if (isnan(res) == 1) { */
+	/* 	printf("isnan(res): %d\n", isnan(res)); */
+	/* 	res = 0; */
+	/* } */
     last_classification->sum[depth] = res;
     last_classification->path[depth] = cur_node;
 }
@@ -588,7 +593,17 @@ static TAttr evaluate_node_test(TAttr v1[], TAttr v2[], uint_fast64_t v_len)
 {
 	TAttr res = 0;
 	while(v_len--){
+
+		/* if ((isnan(v1[v_len]) == 1) || (isnan(v2[v_len]) == 1) || (isnan(res) == 1)) { */
+		/* 	printf("isnan(res): %d\n", isnan(res)); */
+		/* 	res = 0; */
+		/* } */
 		res += v1[v_len] * v2[v_len];
+
+		/* if (isnan(res) == 1) { */
+		/* 	printf("isnan(res): %d\n", isnan(res)); */
+		/* 	res = 0; */
+		/* } */
 	}
 
 	return res;
@@ -652,8 +667,13 @@ tree_node* find_dt_leaf_for_inst(tree_node* dt, TAttr attributes[], int32_t inst
                     }
                 }
 
-                if (cur_node_mutated)
-                    assert(res == evaluate_node_test(cur_node->weights, attributes, attr_cnt));
+                /* if (cur_node_mutated) */
+                    /* assert(res == evaluate_node_test(cur_node->weights, attributes, attr_cnt)); */
+					/* if (!isnan(res)) { */
+					/* 	assert(fabs(res - evaluate_node_test(cur_node->weights, attributes, attr_cnt)) < */
+					/* 	   1e-3 * (fabs(res)) */
+					/* 	); */
+					/* } */
             }
 
             if (cur_node_mutated || cur_node_manipulated) {
@@ -872,16 +892,32 @@ float accuracy_calc(DT_t* dt, uint32_t recalc_all_paths) {
 #if (IMPURITY_CALC == 1)
         /* dt->leaves[i-1]->impurity = ((float) (total_leaf_inst_cnt - dominant_category_cnt)) / (total_leaf_inst_cnt + 1); // +1 not to divide by zero when no instance in leaf */
         dt->leaves[i-1]->impurity = total_leaf_inst_cnt - dominant_category_cnt;
+		dt->leaves[i-1]->inst_num = total_leaf_inst_cnt;
 		/* efti_printf("Dominant %d, Total %d, Impurity %f\n", */
 		/* 			dominant_category_cnt, total_leaf_inst_cnt, dt->leaves[i-1]->impurity); */
 #endif
     }
 
-/* #if (IMPURITY_CALC == 1) */
-/*     for (int i = nonleaves_cnt - 1; i >= 0; i--) { */
-/*         nonleaves[i]->impurity = nonleaves[i]->left->impurity + nonleaves[i]->right->impurity; */
-/*     } */
-/* #endif */
+#if (IMPURITY_CALC == 1)
+	dt->disbalance = 0;
+    for (int i = dt->nonleaves_cnt - 1; i >= 0; i--) {
+		tree_node* node = dt->nonleaves[i];
+        node->impurity = node->left->impurity +	node->right->impurity;
+        node->inst_num = node->left->inst_num +	node->right->inst_num;
+	}
+
+    for (uint_fast16_t i = 0; i < dt->leaves_cnt; i++) {
+		tree_node* node = dt->leaves[i];
+		if (node != dt->root) {
+			if (node->inst_num == 0) {
+				node->disbalance = 1e10;
+			} else {
+				node->disbalance = ((float)tree_get_sibling(node)->inst_num)/node->inst_num;
+			}
+		}
+		dt->disbalance += node->disbalance;
+    }
+#endif
 
     return ((float) hits)/inst_cnt;
 
@@ -1019,8 +1055,10 @@ void mutation(DT_t* dt) {
     float k = efti_conf->topo_mutation_rate_raise_due_to_stagnation_step * categ_max;
     /* topo_mutation_probability = efti_conf->topology_mutation_rate * */
     /*     sigmoid(dt->leaves_cnt/k - efti_conf->weights_mutation_rate); */
-    topo_mutation_probability = efti_conf->topology_mutation_rate *
-        (1.0 - exp(-(dt->leaves_cnt/k)));
+    /* topo_mutation_probability = efti_conf->topology_mutation_rate * */
+    /*     (1.0 - exp(-(dt->leaves_cnt/k))); */
+    topo_mutation_probability = efti_conf->topology_mutation_rate * exp(-(dt->leaves_cnt/k));
+	/* topo_mutation_probability = efti_conf->topology_mutation_rate; */
 
     /* efti_printf("Topo prob: %f", topo_mutation_probability); */
 
@@ -1034,18 +1072,16 @@ void mutation(DT_t* dt) {
     if (topo_mutation_probability > rand_norm())
     {
         while (topology_mutated == 0) {
-            if (!efti_conf->use_impurity_topo_mut) {
-                topo_mut_node = dt->leaves[rand_imax(dt->leaves_cnt)];
-            } else {
-                topo_mut_node = NULL;
-            }
+			topo_mut_node = dt->leaves[rand_imax(dt->leaves_cnt)];
 
-            double add_chance = topo_mutation_probability;
-            /* if (dt->leaves_cnt < categ_max) { */
-            /*     add_chance = 0.3; */
-            /* } else { */
+            /* double add_chance = topo_mutation_probability; */
+            /* if (dt->leaves_cnt < 2*categ_max) { */
             /*     add_chance = 0.5; */
+            /* } else { */
+            /*     add_chance = 0.3; */
             /* } */
+
+			double add_chance = 0.5;
 
             /* if (rand_r(seedp) % 2) { */
             if (rand_norm() < add_chance) {
@@ -1054,6 +1090,7 @@ void mutation(DT_t* dt) {
                 if (efti_conf->use_impurity_topo_mut) {
                     float rand_scaled = rand_norm() * dt->impurity;
 
+					topo_mut_node = dt->leaves[0];
                     for (uint_fast16_t i = 0; i < dt->leaves_cnt; i++) {
                         rand_scaled -= dt->leaves[i]->impurity;
                         if (rand_scaled <= 0) {
@@ -1070,8 +1107,10 @@ void mutation(DT_t* dt) {
                     tree_create_child(topo_mut_node, CHILD_RIGHT);
                     /* random_hiperplane(topo_mut_node); */
                     oc1_hyperplane(topo_mut_node);
-					efti_printf("Split the node #%d with impurity %f\n", topo_mut_node->id,
-								dt->leaves[topo_mut_node->id-1]->impurity);
+					/* efti_printf("Iter: %d: Split the node #%d with impurity %f\n", */
+					/* 			current_iter, */
+					/* 			topo_mut_node->id, */
+					/* 			dt->leaves[topo_mut_node->id-1]->impurity); */
                     /* random_hiperplane(topo_mut_node->weights); */
                     temp_mut_hang_tree = NULL;
                     topo_mut_sibling = NULL;
@@ -1080,27 +1119,54 @@ void mutation(DT_t* dt) {
 #endif
                 }
             } else {
-                if (efti_conf->use_impurity_topo_mut) {
-                    topo_mut_node = dt->leaves[rand_imax(dt->leaves_cnt)];
-                }
+                if (efti_conf->use_disbalance_topo_mut) {
+                    float rand_scaled = rand_norm() * dt->disbalance;
+
+					topo_mut_node = dt->leaves[0];
+                    for (uint_fast16_t i = 0; i < dt->leaves_cnt; i++) {
+                        rand_scaled -= dt->leaves[i]->disbalance;
+                        if (rand_scaled <= 0) {
+                            topo_mut_node = dt->leaves[i];
+                            break;
+                        }
+                    }
+				}
 
                 // Make impossible to remove the root if its the only node
                 if (dt->leaves_cnt > 2) {
-                    temp_mut_hang_tree = topo_mut_node->parent;
+					/* efti_printf("Leaves count: %d\n", dt->leaves_cnt); */
+					/* print_t(dt->root, attr_cnt); */
+                    /* temp_mut_hang_tree = topo_mut_node; */
                     topo_mut_sibling = tree_get_sibling(topo_mut_node);
+                    temp_mut_hang_tree = topo_mut_node->parent;
+
+					/* if ((topo_mut_node->left->left != NULL) && */
+					/* 	(topo_mut_node->left->inst_num > topo_mut_node->right->inst_num)) { */
+					/* 	topo_mut_sibling = topo_mut_node->left; */
+					/* } else { */
+					/* 	topo_mut_sibling = topo_mut_node->right; */
+					/* } */
+
+					/* efti_printf("Delete the leaf #%d with disbalance %f, and replace it with the leaf #%d.\n", */
+					/* 			topo_mut_node->id, */
+					/* 			topo_mut_node->disbalance, */
+					/* 			topo_mut_sibling->id); */
 
                     if (temp_mut_hang_tree == dt->root) {
+						/* efti_printf("Delete root node\n"); */
                         topology_mutated = TOPO_ROOT_CHILD_REMOVED;
                         dt->root = topo_mut_sibling;
                     }
                     else if (temp_mut_hang_tree->parent->left == temp_mut_hang_tree)
                     {
+						/* efti_printf("Delete left child\n"); */
                         topology_mutated = TOPO_LEFT_CHILD_REMOVED;
                         temp_mut_hang_tree->parent->left = topo_mut_sibling;
                         topo_mut_sibling->parent = temp_mut_hang_tree->parent;
                     }
                     else
                     {
+						/* efti_printf("Delete right child\n"); */
                         topology_mutated = TOPO_RIGHT_CHILD_REMOVED;
                         temp_mut_hang_tree->parent->right = topo_mut_sibling;
                         topo_mut_sibling->parent = temp_mut_hang_tree->parent;
@@ -1110,6 +1176,7 @@ void mutation(DT_t* dt) {
         }
 
         extract_hierarcy(dt);
+		/* print_t(dt->root, attr_cnt); */
 #if (EFTI_HW == 1)
         hw_set_whole_tree(dt);
 #endif
@@ -1255,14 +1322,16 @@ float selection(float fit, DT_t* dt_mut, DT_t* dt_best) {
             returned_to_best_iter = current_iter;
 #if (EFTI_PRINT_STATS == 1)
             if (searching) {
-                efti_printf("$event:name=\"SAB\",iter=%d,acc=%f,fit=%f,size=%d *\n",
-							current_iter, dt_mut->accuracy, dt_mut->fit, dt_mut->leaves_cnt);
+                efti_printf("$event:name=\"SAB\",iter=%d,acc=%f,fit=%f,size=%d,topomut=%d *\n",
+							current_iter, dt_mut->accuracy, dt_mut->fit,
+							dt_mut->leaves_cnt, topology_mutated);
             } else {
-                efti_printf("$event:name=\"AB\",iter=%d,acc=%f,fit=%f,size=%d *\n",
-							current_iter, dt_mut->accuracy, dt_mut->fit, dt_mut->leaves_cnt);
+                efti_printf("$event:name=\"AB\",iter=%d,acc=%f,fit=%f,size=%d,topomut=%d *\n",
+							current_iter, dt_mut->accuracy, dt_mut->fit,
+							dt_mut->leaves_cnt, topology_mutated);
             }
 #endif
-			print_distribution_matrix(dt_best);
+			/* print_distribution_matrix(dt_best); */
 			/* print_t(dt_best->root, attr_cnt); */
             searching = 0;
         }

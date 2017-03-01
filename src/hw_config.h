@@ -12,7 +12,7 @@
 #define COEF_RES         		16
 #define CLASS_RES		 		8
 #define NUM_ATTRIBUTES   		25088
-#define MAX_TREE_DEPTH			8
+#define MAX_TREE_DEPTH			10
 #define NUM_NODES		 		(1 << (MAX_TREE_DEPTH - 1))
 
 #define NUM_INST_MAX			4096

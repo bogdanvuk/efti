@@ -36,6 +36,7 @@ typedef struct {
     float complexity_weight;
     float impurity_weight;
     int use_impurity_topo_mut;
+    int use_disbalance_topo_mut;
     int use_impurity_weight_mut;
     int ensemble_size;
     int runs;
@@ -52,6 +53,7 @@ typedef struct {
     float fit;
     float oversize;
     float impurity;
+    float disbalance;
     float accuracy;
     uint_fast16_t depth;
     uint_fast16_t leaves_cnt;

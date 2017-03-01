@@ -26,8 +26,10 @@ struct tree_el{
 	uint32_t level;
 	uint32_t id;
 	uint32_t cls;
-  float impurity;
-  uint32_t to_bottom;
+	float impurity;
+	float disbalance;
+	uint32_t inst_num;
+	uint32_t to_bottom;
 	struct tree_el* left;
 	struct tree_el* right;
 	struct tree_el* parent;
