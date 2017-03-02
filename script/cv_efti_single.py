@@ -8,7 +8,7 @@ from efti_intf import efti_test
 files_all = ['adult', 'ausc', 'bank', 'bc', 'bch', 'bcw', 'ca', 'car', 'cmc', 'ctg', 'cvf', 'eb', 'eye', 'ger', 'gls', 'hep', 'hrtc', 'hrts', 'ion', 'irs', 'jvow', 'krkopt', 'letter', 'liv', 'lym', 'magic', 'msh', 'nurse', 'page', 'pen', 'pid', 'psd', 'sb', 'seg', 'shuttle', 'sick', 'son', 'spect', 'spf', 'thy', 'ttt', 'veh', 'vene', 'vote', 'vow', 'w21', 'w40', 'wfr', 'wilt', 'wine', 'zoo']
 
 param_def = {
-    'max_iter': 20000,
+    'max_iter': 100000,
     # 'ensemble_size': 1,
     'oversize_w': 0.01,
     # 'search_prob': 0.05,
@@ -18,14 +18,15 @@ param_def = {
     # 'return_prob': 0.0001,
     # 'allow_subseq_searches': 1,
     'folds': 5,
-    'runs' : 1,
+    'runs' : 5,
     'topo_mut': 0.3,
     # 't_accel_stagn': 1,
 }
 
 test_partition = [['shuttle'], ['eb'], ['bank'], ['letter', 'cvf', 'seg', 'thy', 'veh', 'psd', 'son', 'pid', 'lym', 'zoo', 'irs'], ['krkopt', 'w40', 'ctg', 'spf', 'wilt', 'sb', 'ion', 'ca', 'vote', 'hrts', 'vene'], ['adult', 'magic', 'nurse', 'wfr', 'w21', 'page', 'vow', 'cmc', 'ger', 'ttt', 'gls', 'bcw', 'liv'], ['pen', 'bch', 'jvow', 'eye', 'msh', 'wine', 'sick', 'car', 'hrtc', 'ausc', 'bc', 'spect', 'hep']]
 
-test_partition = [['eb'], ['letter', 'cvf', 'seg', 'thy', 'veh', 'psd', 'son', 'pid', 'lym', 'zoo', 'irs'], ['krkopt', 'w40', 'ctg', 'spf', 'wilt', 'sb', 'ion', 'ca', 'vote', 'hrts', 'vene'], ['adult', 'magic', 'nurse', 'wfr', 'w21', 'page', 'vow', 'cmc', 'ger', 'ttt', 'gls', 'bcw', 'liv'], ['pen', 'bch', 'jvow', 'eye', 'msh', 'wine', 'sick', 'car', 'hrtc', 'ausc', 'bc', 'spect', 'hep']]
+# test_partition = [['eb'], ['letter', 'cvf', 'seg', 'thy', 'veh', 'psd', 'son', 'pid', 'lym', 'zoo', 'irs'], ['krkopt', 'w40', 'ctg', 'spf', 'wilt', 'sb', 'ion', 'ca', 'vote', 'hrts', 'vene'], ['adult', 'magic', 'nurse', 'wfr', 'w21', 'page', 'vow', 'cmc', 'ger', 'ttt', 'gls', 'bcw', 'liv'], ['pen', 'bch', 'jvow', 'eye', 'msh', 'wine', 'sick', 'car', 'hrtc', 'ausc', 'bc', 'spect', 'hep']]
+# test_partition = [['eb'], ['letter', 'cvf', 'seg', 'thy', 'veh', 'psd', 'son', 'pid', 'lym', 'zoo', 'irs'], ['krkopt', 'w40', 'ctg', 'spf', 'wilt', 'sb', 'ion', 'ca', 'vote', 'hrts', 'vene'], ['bch', 'magic', 'nurse', 'wfr', 'w21', 'page', 'vow', 'cmc', 'ger', 'ttt', 'gls', 'bcw', 'liv'], ['pen', 'adult', 'jvow', 'eye', 'msh', 'wine', 'sick', 'car', 'hrtc', 'ausc', 'bc', 'spect', 'hep']]
 
 tests_all = [{'dataset_selection': ','.join(ds)} for ds in test_partition]
 # tests_all = [{'dataset_selection': ','.join(ds)} for ds in [files_all]]
@@ -47,4 +48,4 @@ def run_tests(tests, threads=0, res_dir='.'):
     return params
 
 if __name__ == "__main__":
-   run_tests(tests_all, threads=3)
+   run_tests(tests_all, threads=4)

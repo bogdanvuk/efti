@@ -157,6 +157,7 @@ uint32_t non_eval_ticks = 0;
 #define TOPO_LEFT_CHILD_REMOVED		2
 #define TOPO_RIGHT_CHILD_REMOVED	3
 #define TOPO_ROOT_CHILD_REMOVED 	4
+#define TOPO_PLANE_RANDOMIZED 	    5
 
 /* #define MAX_ATTR_VAL ((1 << (COEF_RES - 1)) - 1) */
 #define MAX_ATTR_VAL 1.0
@@ -1026,6 +1027,10 @@ void delete_trimmed_subtree(uint32_t topology_mutated, tree_node* temp_mut_hang_
 
         tree_delete_node(temp_mut_hang_tree);
     }
+	else if ((topology_mutated) && (topology_mutated == TOPO_PLANE_RANDOMIZED)) {
+		*topo_mut_node = *temp_mut_hang_tree;
+		free(temp_mut_hang_tree);
+	}
 }
 
 void hw_apply_mutation(tree_node* mut_nodes[], uint32_t mut_attr[], uint32_t mut_bit[], uint32_t weights_mutation_cnt)
@@ -1082,10 +1087,12 @@ void mutation(DT_t* dt) {
             /*     add_chance = 0.3; */
             /* } */
 
-			double add_chance = 0.5;
+			double add_chance = 0.4;
+			double remove_chance = 0.4;
 
+			float rnd = rand_norm();
             /* if (rand_r(seedp) % 2) { */
-            if (rand_norm() < add_chance) {
+            if (rnd < add_chance) {
                 /* if (rand_norm() > 0.5) { */
                 /* if ((rand_norm() < 0.3 ? (leaves_cnt < categ_max) : 0.5)) { */
                 if (efti_conf->use_impurity_topo_mut) {
@@ -1119,7 +1126,7 @@ void mutation(DT_t* dt) {
                     pack_coefs(topo_mut_node->weights, NUM_ATTRIBUTES + 1, COEF_RES, topo_mut_node->banks);
 #endif
                 }
-            } else {
+            } else if (rnd < (add_chance + remove_chance)) {
                 if (efti_conf->use_disbalance_topo_mut) {
                     float rand_scaled = rand_norm() * dt->disbalance;
 
@@ -1173,6 +1180,25 @@ void mutation(DT_t* dt) {
                         topo_mut_sibling->parent = temp_mut_hang_tree->parent;
                     }
                 }
+			} else {
+                if (efti_conf->use_disbalance_topo_mut) {
+                    float rand_scaled = rand_norm() * dt->disbalance;
+
+					topo_mut_node = dt->leaves[0];
+                    for (uint_fast16_t i = 0; i < dt->leaves_cnt; i++) {
+                        rand_scaled -= dt->leaves[i]->disbalance;
+                        if (rand_scaled <= 0) {
+                            topo_mut_node = dt->leaves[i];
+                            break;
+                        }
+                    }
+				}
+				topo_mut_node = topo_mut_node->parent;
+				temp_mut_hang_tree = node_alloc();
+				/* temp_mut_hang_tree = (tree_node*) malloc(sizeof(tree_node)); */
+				*temp_mut_hang_tree = *topo_mut_node;
+				oc1_hyperplane(topo_mut_node);
+				topology_mutated = TOPO_PLANE_RANDOMIZED;
             }
         }
 
@@ -1457,6 +1483,11 @@ float selection(float fit, DT_t* dt_mut, DT_t* dt_best) {
                     tree_delete_child(topo_mut_node, CHILD_LEFT);
                     tree_delete_child(topo_mut_node, CHILD_RIGHT);
                 }
+				else if (topology_mutated == TOPO_PLANE_RANDOMIZED)
+				{
+					*topo_mut_node = *temp_mut_hang_tree;
+					free(temp_mut_hang_tree);
+				}
 
                 extract_hierarcy(dt_mut);
 #if (EFTI_HW == 1)

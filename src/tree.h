@@ -47,6 +47,7 @@ tree_node* tree_copy(tree_node* src);
 int tree_delete_child(tree_node* node, uint32_t child);
 tree_node* tree_get_sibling(tree_node* node);
 void tree_init();
+tree_node* node_alloc();
 /* int is_child_of(tree_node* parent, tree_node* child); */
 
 #endif /* TREE_H_ */
