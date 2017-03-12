@@ -69,7 +69,7 @@ int load_dataset_to_efti(T_Dataset* ds, int* perm, int start, int end, int ex_st
 }
 
 int file_load_dataset_to_efti(const Efti_Conf_t *conf){
-	std::string ifn = "/data/projects/dtnn/deep-learning-models/features.h5";
+	std::string ifn = "/data/projects/dtnn/deep-learning-models/imagenet.h5";
 	/* std::string ifn = "/data/projects/dtnn/deep-learning-models/features_float_3c.h5"; */
 
     // Open HDF5 file handle, read only

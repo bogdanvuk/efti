@@ -105,7 +105,8 @@ uint32_t inst_cnt;
 uint32_t categ_max;
 T_Dataset* dataset;
 //uint32_t coef_packed_mem[COEF_BANKS_MAX_NUM];
-TAttr instances[NUM_INST_MAX][NUM_ATTRIBUTES];
+/* TAttr instances[NUM_INST_MAX][NUM_ATTRIBUTES]; */
+TAttr *instances[NUM_INST_MAX];
 int32_t categ_inst_num[1024];
 
 typedef struct {
@@ -149,7 +150,7 @@ uint32_t searching;
 uint32_t node_hierarchy_cnt[MAX_TREE_DEPTH];
 //Enumeration of leaves starts from 1, so it is cheaper to ignore the first
 //row to distribution matrix, and hence have one more in total
-uint_fast16_t node_categories_distrib[LEAVES_MAX+1][NUM_ATTRIBUTES];
+uint_fast16_t node_categories_distrib[LEAVES_MAX+1][1<<CLASS_RES];
 
 uint32_t non_eval_ticks = 0;
 
@@ -1531,7 +1532,7 @@ DT_t* efti(float* t_hb, uint_fast16_t* iters)
 
     delta_on = 1;
     fitness_eval(&dt_cur, delta_on);
-	print_distribution_matrix(&dt_cur);
+	/* print_distribution_matrix(&dt_cur); */
     dt_copy(&dt_cur, &dt_best);
     /* recalculate_path(dt_cur); */
     stagnation_iter = 0;
@@ -1608,6 +1609,10 @@ void efti_reset(const Efti_Conf_t *conf, int attr_cnt_, int categ_max_)
     categ_max = categ_max_;
 	for(unsigned i=0;i<categ_max;i++) {
 		categ_inst_num[i] = 0;
+	}
+
+	for(int i=0; i < NUM_INST_MAX; i++) {
+		instances[i] = new TAttr[attr_cnt];
 	}
 
     /* dataset = ds; */
