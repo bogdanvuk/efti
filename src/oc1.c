@@ -6,7 +6,7 @@ float *coeff_array,*modified_coeff_array,*best_coeff_array;
 int no_of_dimensions=0,no_of_coeffs;
 int no_of_categories=0;
 int coeff_modified = FALSE;
-int no_of_restarts=1,no_of_folds=0;
+int no_of_restarts=2,no_of_folds=0;
 int unlabeled = FALSE,verbose=TRUE,veryverbose = FALSE;
 int order_of_perturbation = SEQUENTIAL;
 int no_of_stagnant_perturbations,no_of_missing_values=0;

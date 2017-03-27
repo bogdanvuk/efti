@@ -50,11 +50,11 @@ typedef struct {
 
 
 typedef struct {
-    float fit;
+    double fit;
     float oversize;
     float impurity;
     float disbalance;
-    float accuracy;
+    double accuracy;
     uint_fast16_t depth;
     uint_fast16_t leaves_cnt;
     uint_fast16_t nonleaves_cnt;

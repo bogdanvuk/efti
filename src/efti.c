@@ -142,7 +142,6 @@ uint32_t mut_bank_val[MAX_WEIGHT_MUTATIONS];
 uint32_t categories[NUM_INST_MAX];
 uint_fast16_t current_iter;
 uint32_t returned_to_best_iter;
-float fitness_best;
 uint32_t stagnation_iter;
 uint32_t delta_on;
 uint32_t searching;
@@ -856,7 +855,7 @@ float ensemble_eval(DT_t* dt[], int ensemble_size) {
     return ((float) hits)/inst_cnt;
 }
 
-float accuracy_calc(DT_t* dt, uint32_t recalc_all_paths) {
+double accuracy_calc(DT_t* dt, uint32_t recalc_all_paths) {
     uint_fast16_t hits;
 
     for (uint_fast16_t i = 1; i <= dt->leaves_cnt; i++)
@@ -920,7 +919,7 @@ float accuracy_calc(DT_t* dt, uint32_t recalc_all_paths) {
     }
 #endif
 
-    return ((float) hits)/inst_cnt;
+    return ((double) hits)/inst_cnt;
 
 }
 
@@ -1082,7 +1081,7 @@ void mutation(DT_t* dt) {
             /*     add_chance = 0.3; */
             /* } */
 
-			double add_chance = 0.5;
+			double add_chance = 0.8;
 
             /* if (rand_r(seedp) % 2) { */
             if (rand_norm() < add_chance) {
@@ -1493,7 +1492,7 @@ void dt_init(DT_t* dt) {
 DT_t* efti(float* t_hb, uint_fast16_t* iters)
 {
 
-    float fit;
+    double fit;
 
     /* char fn[512]; */
     /* char* fn_fmt = "/data/projects/rst/examples/doktorat/source/images/efti_overview_dts/json/%d.js"; */

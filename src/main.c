@@ -32,7 +32,7 @@ Efti_Conf_t efti_config = {
     MAX_ITERATIONS,	// max_iterations
     0.1,          // topology_mutation_rate;
     0.0,           // weights_mutation_rate;
-    0.05,           // search_probability;
+    0.025,           // search_probability;
     5e-5,          // search_probability_raise_due_to_stagnation_step;
     1,        // topo_mutation_rate_raise_due_to_stagnation_step;
     0.0,        // weight_mutation_rate_raise_due_to_stagnation_step;
@@ -47,7 +47,7 @@ Efti_Conf_t efti_config = {
     1,              // folds
     NULL,           // dataset_list
     SEED,           // seed
-    SEARCH_EFTI_METROPOLIS, // search_function
+    SEARCH_NONE, // search_function
     1,               // allow_subseq_searches
     -1              // max_time
 };
@@ -69,7 +69,8 @@ int load_dataset_to_efti(T_Dataset* ds, int* perm, int start, int end, int ex_st
 }
 
 int file_load_dataset_to_efti(const Efti_Conf_t *conf){
-	std::string ifn = "/data/projects/dtnn/deep-learning-models/imagenet.h5";
+	/* std::string ifn = "/data/projects/dtnn/deep-learning-models/imagenet.h5"; */
+	std::string ifn = "/home/bvu1/imagenet.h5";
 	/* std::string ifn = "/data/projects/dtnn/deep-learning-models/features_float_3c.h5"; */
 
     // Open HDF5 file handle, read only
