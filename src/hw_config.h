@@ -11,12 +11,13 @@
 #define ATTRIBUTE_RES    		16
 #define COEF_RES         		16
 #define CLASS_RES		 		8
-#define NUM_ATTRIBUTES   		25088
-#define MAX_TREE_DEPTH			8
+// #define NUM_ATTRIBUTES   		25088
+#define NUM_ATTRIBUTES   		60
+#define MAX_TREE_DEPTH			14
 #define NUM_NODES		 		(1 << (MAX_TREE_DEPTH - 1))
 
-#define NUM_INST_MAX			4096
-// #define NUM_INST_MAX			60000
+// #define NUM_INST_MAX			4096
+#define NUM_INST_MAX			60000
 
 #define CEILING(x,y) (((x) + (y) - 1) / (y))
 

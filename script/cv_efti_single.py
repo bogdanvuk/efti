@@ -9,19 +9,24 @@ files_all = ['adult', 'ausc', 'bank', 'bc', 'bch', 'bcw', 'ca', 'car', 'cmc', 'c
 
 param_def = {
     'max_iter': 500000,
-    'ensemble_size': 1,
+    'ensemble_size': 25,
     'oversize_w': 0.01,
     'search_prob': 0.05,
     's_accel_stagn': 5e-5,
     'w_accel_stagn': 0.001,
-    'search_function': 0,
+    'search_function': 1,
     'return_prob': 0.0001,
     'allow_subseq_searches': 1,
     'topo_mut': 0.6,
     't_accel_stagn': 1,
+    'folds': 5,
+    'runs': 5
 }
 
-test_partition = [['shuttle'], ['eb'], ['bank'], ['letter', 'cvf', 'seg', 'thy', 'veh', 'psd', 'son', 'pid', 'lym', 'zoo', 'irs'], ['krkopt', 'w40', 'ctg', 'spf', 'wilt', 'sb', 'ion', 'ca', 'vote', 'hrts', 'vene'], ['adult', 'magic', 'nurse', 'wfr', 'w21', 'page', 'vow', 'cmc', 'ger', 'ttt', 'gls', 'bcw', 'liv'], ['pen', 'bch', 'jvow', 'eye', 'msh', 'wine', 'sick', 'car', 'hrtc', 'ausc', 'bc', 'spect', 'hep']]
+# test_partition = [['shuttle'], ['eb'], ['bank'], ['letter', 'cvf', 'seg', 'thy', 'veh', 'psd', 'son', 'pid', 'lym', 'zoo', 'irs'], ['krkopt', 'w40', 'ctg', 'spf', 'wilt', 'sb', 'ion', 'ca', 'vote', 'hrts', 'vene'], ['adult', 'magic', 'nurse', 'wfr', 'w21', 'page', 'vow', 'cmc', 'ger', 'ttt', 'gls', 'bcw', 'liv'], ['pen', 'bch', 'jvow', 'eye', 'msh', 'wine', 'sick', 'car', 'hrtc', 'ausc', 'bc', 'spect', 'hep']]
+
+test_partition = [['shuttle'], ['eb'], ['bank'], ['letter', 'cvf'], ['krkopt'], ['adult', 'magic', 'nurse', 'wfr', 'w21', 'page'], ['pen', 'bch', 'jvow', 'eye', 'msh', 'wine']]
+# test_partition = [['wine']]
 
 #test_partition = [['eb'], ['letter', 'cvf', 'seg', 'thy', 'veh', 'psd', 'son', 'pid', 'lym', 'zoo', 'irs'], ['krkopt', 'w40', 'ctg', 'spf', 'wilt', 'sb', 'ion', 'ca', 'vote', 'hrts', 'vene'], ['adult', 'magic', 'nurse', 'wfr', 'w21', 'page', 'vow', 'cmc', 'ger', 'ttt', 'gls', 'bcw', 'liv'], ['pen', 'bch', 'jvow', 'eye', 'msh', 'wine', 'sick', 'car', 'hrtc', 'ausc', 'bc', 'spect', 'hep']]
 

@@ -284,6 +284,8 @@ Cv_Status_T* crossvalid_next_fold()
 Cv_Status_T* crossvalid_next_ensemble()
 {
 
+  int scale_factor = 1;
+
     cv_stat.cur_ensemble++;
     if (cv_stat.cur_ensemble == cv_stat.cur_ensemble_size)
     {
@@ -291,7 +293,15 @@ Cv_Status_T* crossvalid_next_ensemble()
     }
 
     cv_stat.chunk_size  = (cv_stat.train_set_size + cv_stat.cur_ensemble_size - 1) / cv_stat.cur_ensemble_size;
-    cv_stat.chunk_start = cv_stat.cur_ensemble*cv_stat.chunk_size;
+
+    if (cv_stat.chunk_size < 2000) {
+      scale_factor = (2000 + cv_stat.chunk_size - 1) / cv_stat.chunk_size;
+      cv_stat.chunk_size *= scale_factor;
+    }
+
+    cv_stat.chunk_start = fmin(cv_stat.cur_ensemble,
+                               cv_stat.cur_ensemble_size-scale_factor)*cv_stat.chunk_size/scale_factor;
+
     cv_stat.chunk_end = cv_stat.chunk_start + cv_stat.chunk_size;
 
     if (cv_stat.chunk_start > cv_stat.fold_start) {
